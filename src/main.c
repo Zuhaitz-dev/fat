@@ -193,7 +193,8 @@ static FatResult process_input(AppState *state, int ch) {
         ui_show_help(state);
         return FAT_SUCCESS;
     }
-    if (ch == 'g') {
+    // Update 'o' key to go to a line, and add 'G' for end and 'gg' for beginning.
+    if (ch == 'o') {
         int target_line = ui_get_line_input(state);
         if (target_line > 0) {
             state->top_line = target_line - 1;
@@ -204,11 +205,27 @@ static FatResult process_input(AppState *state, int ch) {
         return FAT_SUCCESS;
     }
 
+    if (ch == 'g') {
+        int next_ch = getch(); // Read next key
+        if (next_ch == 'g') { // 'gg'
+            state->top_line = 0;
+            state->left_char = 0;
+            return FAT_SUCCESS;
+        }
+        return FAT_SUCCESS;
+    }
+    // New 'G' keybinding to go to the end
+    if (ch == 'G') {
+        state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
+        state->left_char = 0;
+        return FAT_SUCCESS;
+    }
+
     switch (state->view_mode) {
         case VIEW_MODE_ARCHIVE:
             switch (ch) {
-                case KEY_DOWN: 
-                case 'j': 
+                case KEY_DOWN:
+                case 'j':
                     if (state->top_line + 1 < (int)state->content.count) state->top_line++; break;
                 case KEY_UP:
                 case 'k':
@@ -257,12 +274,16 @@ static FatResult process_input(AppState *state, int ch) {
                 if (max_scroll_limit < 0) max_scroll_limit = 0;
 
                 switch(ch) {
-                    case KEY_DOWN: if (state->top_line + 1 < (int)state->content.count) state->top_line++; break;
-                    case KEY_UP: if (state->top_line > 0) state->top_line--; break;
+                    case KEY_DOWN:
+                    case 'j': if (state->top_line + 1 < (int)state->content.count) state->top_line++; break;
+                    case KEY_UP:
+                    case 'k': if (state->top_line > 0) state->top_line--; break;
                     case KEY_RIGHT:
+                    case 'l':
                         if (state->left_char < max_scroll_limit) state->left_char++;
                         break;
                     case KEY_LEFT:
+                    case 'h':
                         if (state->left_char > 0) state->left_char--;
                         break;
                     case KEY_NPAGE:
@@ -300,9 +321,12 @@ static FatResult process_input(AppState *state, int ch) {
                 if (max_scroll_limit < 0) max_scroll_limit = 0;
 
                 switch(ch) {
-                    case KEY_DOWN: if (state->top_line + 1 < (int)state->content.count) state->top_line++; break;
-                    case KEY_UP: if (state->top_line > 0) state->top_line--; break;
+                    case KEY_DOWN:
+                    case 'j': if (state->top_line + 1 < (int)state->content.count) state->top_line++; break;
+                    case KEY_UP:
+                    case 'k': if (state->top_line > 0) state->top_line--; break;
                     case KEY_RIGHT:
+                    case 'l':
                         if (!state->line_wrap_enabled && state->left_char < max_scroll_limit) {
                             const char *line = state->content.lines[state->top_line];
                             if (state->left_char < (int)strlen(line)) {
@@ -311,6 +335,7 @@ static FatResult process_input(AppState *state, int ch) {
                         }
                         break;
                     case KEY_LEFT:
+                    case 'h':
                         if (!state->line_wrap_enabled && state->left_char > 0) {
                             const char *line = state->content.lines[state->top_line];
                             state->left_char = utf8_prev_char_start(line, state->left_char);

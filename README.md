@@ -17,7 +17,9 @@
 - **Plugin Architecture**: FAT uses a dynamic plugin system to handle different archive formats. The beta version comes with support for ZIP and TAR archives.
 - **Customizable Theming**: Easily change the look and feel of the application. FAT uses simple `.json` files for theming and comes with several pre-built themes, including Nord, Gruvbox, Monochrome, and Solarized.
 - **User-Friendly TUI**: A clean, two-pane layout shows file metadata on the left and content on the right.
-- **Cross-Platform**: Designed to compile and run on Linux, macOS, and Windows (via MinGW-w64).
+- **Cross-Platform**: Designed to compile and run on Linux, macOS, and ~~Windows (via MinGW-w64)~~.
+
+> NOTE: At the current version, **Windows** is not available. Linux and macOS are available completely though.
 
 ---
 
@@ -79,7 +81,7 @@ Using [Homebrew](https://brew.sh/):
 brew install ncurses libmagic libzip libtar
 ```
 
-### Windows
+### ~~Windows~~ (Not available yet)
 
 The recommended way is to use MSYS2 with the MinGW-w64 toolchain.
 

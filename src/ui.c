@@ -148,7 +148,7 @@ void ui_destroy() {
 }
 
 /**
- * @brief Draws the entire application screen.
+ * @brief Draws the entire application screen based on the current AppState.
  *
  * This function orchestrates the drawing of all UI components, including
  * the metadata pane, content pane, and status bar. It then calls `doupdate()`
@@ -190,7 +190,7 @@ void ui_handle_resize(AppState *state) {
 
     wresize(state->status_bar, 1, width);
     mvwin(state->status_bar, height - 1, 0);
-    
+
     // 3 - Tell ncurses that the main window and all its sub-windows have been
     // "touched" (modified) and need a full repaint on the next draw cycle.
     // This is the key to preventing visual glitches.
@@ -236,7 +236,7 @@ void ui_show_message(const AppState *state, const char *message) {
  */
 void ui_show_help(const AppState* state) {
     int height, width; getmaxyx(stdscr, height, width);
-    int help_h = 16, help_w = 55;
+    int help_h = 17, help_w = 55;
     int start_y = (height - help_h) / 2;
     int start_x = (width - help_w) / 2;
     WINDOW* help_win = newwin(help_h, help_w, start_y, start_x);
@@ -249,10 +249,10 @@ void ui_show_help(const AppState* state) {
     if (state->view_mode == VIEW_MODE_ARCHIVE) {
         mvwprintw(help_win, 1, (help_w - 18) / 2, "Archive Navigation");
         const char* keys[][2] = {
-            {"Up/Down", "Select file/folder"},
+            {"j/k", "Select file/folder"},
             {"Enter", "View file or enter folder"},
             {"Esc", "Go to parent folder"},
-            {"g", "Go to entry"},
+            {"o", "Go to entry"},
             {"F2", "Change theme"},
             {"q", "Quit the application"}
         };
@@ -265,15 +265,15 @@ void ui_show_help(const AppState* state) {
     } else { // Default view mode (text/binary)
         mvwprintw(help_win, 1, (help_w - 11) / 2, "KEYBINDINGS");
         const char* keys[][2] = {
-            {"Up/Down", "Scroll line by line"}, {"Left/Right", "Scroll horizontally"},
-            {"PgUp/PgDn", "Scroll page by page"}, {"Home/End", "Jump to start/end"},
-            {"g", "Go to line"},
+            {"j/k", "Scroll line by line"}, {"h/l", "Scroll horizontally"},
+            {"PgUp/PgDn", "Scroll page by page"}, {"G", "Jump to end of content"},
+            {"gg", "Jump to beginning of content"}, {"o", "Go to line"},
             {"w", "Toggle line wrapping (Text mode)"}, {"/", "Search for text/hex"},
             {"n/N", "Next/prev search match"}, {"F2", "Change theme"},
             {"Esc", "Go back (from archive)"}, {"?", "Show this help screen"},
             {"q", "Quit the application"}
         };
-        for (int i = 0; i < 12; i++) {
+        for (int i = 0; i < 13; i++) {
             wattron(help_win, COLOR_PAIR(COLOR_PAIR_HELP_KEY) | A_BOLD);
             mvwprintw(help_win, i + 2, 3, "%-12s", keys[i][0]);
             wattroff(help_win, COLOR_PAIR(COLOR_PAIR_HELP_KEY) | A_BOLD);
@@ -289,6 +289,7 @@ void ui_show_help(const AppState* state) {
     wnoutrefresh(stdscr); // Refresh main window
     doupdate();           // Update physical screen
 }
+
 
 /**
  * @brief Gets search input from the user via the status bar.

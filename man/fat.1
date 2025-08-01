@@ -9,20 +9,19 @@ fat \- a TUI file and archive viewer
 
 .SH DESCRIPTION
 .B fat
-is a modern, TUI-based file and archive viewer for the terminal. It is designed to quickly inspect text files, binary files (in a hex-dump view), and the contents of archives without needing to extract them first.
-
+is a modern, TUI-based file and archive viewer for the terminal.
+It is designed to quickly inspect text files, binary files (in a hex-dump view), and the contents of archives without needing to extract them first.
 It features a two-pane layout, with file metadata displayed on the left and content on the right.
-
 .SH FEATURES
 .IP "•" 4
 \fBPlugin-based Archive Support:\fR Natively handles .zip and .tar archives through a dynamic plugin system.
 .IP "•" 4
 \fBHex Viewer:\fR Automatically displays binary files in a traditional hex-dump format (offset, hex bytes, ASCII).
 .IP "•" 4
-\fBTheming:\fR Customize the entire UI using simple .json theme files. Default themes are copied to \fI~/.config/fat/themes/\fR on first run.
+\fBTheming:\fR Customize the entire UI using simple .json theme files.
+Default themes are copied to \fI~/.config/fat/themes/\fR on first run.
 .IP "•" 4
 \fBSearch:\fR Full-text search within text files and hex-value search within the binary viewer.
-
 .SH KEYBINDINGS
 The following keybindings are available in the main viewer:
 
@@ -30,13 +29,13 @@ The following keybindings are available in the main viewer:
 .B q
 Quit the application.
 .TP
-.B Up/Down Arrows
+.B Up/Down Arrows, j/k
 Navigate through files in an archive or scroll content line by line.
 .TP
 .B PageUp/PageDown
 Scroll content page by page.
 .TP
-.B Home/End
+.B Home/gg, End/G
 Jump to the start or end of the content.
 .TP
 .B Enter
@@ -49,21 +48,22 @@ Go back to the parent archive or clear the current search.
 Open the theme selector menu to change the UI theme on the fly.
 .TP
 .B /
-Enter search mode. Type a term and press Enter to find the first match.
+Enter search mode.
+Type a term and press Enter to find the first match.
 .TP
 .B n / N
 Find the next or previous search match.
 .TP
 .B ?
 Display the in-app help screen.
-
 .SH FILES
 .TP
 \fI~/.config/fat/fatrc\fR
 The user-specific configuration file. Created on first run.
 .TP
 \fI~/.config/fat/themes/\fR
-User-specific directory for custom \fB.json\fR theme files. Themes placed here will be available in the theme selector (F2).
+User-specific directory for custom \fB.json\fR theme files.
+Themes placed here will be available in the theme selector (F2).
 .TP
 \fI~/.config/fat/plugins/\fR
 User-specific directory for custom plugin shared libraries (\fB.so\fR, \fB.dylib\fR).
@@ -73,7 +73,6 @@ System-wide directory for default themes.
 .TP
 \fI/usr/local/lib/fat/plugins/\fR
 System-wide directory for default plugins.
-
 .SH SEE ALSO
 .BR less (1),
 .BR vim (1),
@@ -81,4 +80,4 @@ System-wide directory for default plugins.
 .BR zip (1)
 
 .SH AUTHOR
-This program was written by Zuhaitz.
+This program was written by Zuhaitz and the rest of contributors (check CONTRIBUTORS.md).
