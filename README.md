@@ -34,7 +34,7 @@
 The easiest way to get started is by downloading the latest AppImage. No installation or dependencies are required.
 
 1. **Download the AppImage**
-    Go to the project's **Releases Page** on GitHub and download the `fat-x86_64.AppImage` file.
+    Go to the project's [Releases Page](https://github.com/Zuhaitz-dev/fat/releases/) on GitHub and download the `fat-x86_64.AppImage` file.
 
 2. **Make it Executable**
     You only need to do this once.
