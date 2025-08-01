@@ -1,6 +1,15 @@
 # FAT - File & Archive Tool
 
-**FAT** is a modern, TUI-based file and archive viewer for your terminal. It's designed for developers and power users who want to quickly inspect files and peek inside archives like `.zip` and `.tar` without having to extract them first. It is lightweight, fast, and highly extensible.
+<table>
+  <tr>
+    <td width="120" valign="middle">
+      <img src="./assets/fat-1.svg" alt="FAT Logo"/>
+    </td>
+    <td valign="middle">
+      <strong>FAT</strong> is a modern, TUI-based file and archive viewer for your terminal. It's designed for developers and power users who want to quickly inspect files and peek inside archives like <code>.zip</code> and <code>.tar</code> without having to extract them first. It is lightweight, fast, and highly extensible.
+    </td>
+  </tr>
+</table>
 
 ## Features
 
@@ -9,6 +18,16 @@
 - **Customizable Theming**: Easily change the look and feel of the application. FAT uses simple `.json` files for theming and comes with several pre-built themes, including Nord, Gruvbox, Monochrome, and Solarized.
 - **User-Friendly TUI**: A clean, two-pane layout shows file metadata on the left and content on the right.
 - **Cross-Platform**: Designed to compile and run on Linux, macOS, and Windows (via MinGW-w64).
+
+---
+
+## Screenshots
+
+| | | |
+| :---: | :---: | :---: |
+| <img src="./assets/screenshot-1.png" alt="Main interface showing a text file" width="100%"> | <img src="./assets/screenshot-2.png" alt="Archive mode plus themes selector" width="100%"> | <img src="./assets/screenshot-3.png" alt="Hex view of a binary file" width="100%"> |
+
+---
 
 ## Installation (AppImage - Recommended for Linux)
 
