@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=fat
+Comment=A hexadecimal file viewer for the terminal
+Exec=fat
+Icon=fat
+Type=Application
+Categories=Utility;ConsoleOnly;
