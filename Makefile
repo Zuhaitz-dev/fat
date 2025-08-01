@@ -69,7 +69,7 @@ endif
 # ==============================================================================
 # Compiler and Linker Flags
 # ==============================================================================
-COMMON_CFLAGS := -Wall -Wextra -Iinclude -fPIC -DFAT_VERSION=\"$(VERSION)\" -DINSTALL_PREFIX=\"$(PREFIX)\"
+COMMON_CFLAGS := -Wall -Wextra -Iinclude -fPIC -I/opt/homebrew/opt/libmagic/include -I/opt/homebrew/opt/libtar/include -DFAT_VERSION=\"$(VERSION)\" -DINSTALL_PREFIX=\"$(PREFIX)\"
 
 ifeq ($(DEBUG), 1)
 	CFLAGS := $(COMMON_CFLAGS) -g3 -O0
@@ -77,7 +77,7 @@ else
 	CFLAGS := $(COMMON_CFLAGS) -O2 -s
 endif
 
-LDFLAGS := $(LDFLAGS_NCURSES) -lmagic $(LDFLAGS_PLATFORM) -L$(LIB_DIR) -lfat_utils -lm
+LDFLAGS := $(LDFLAGS_NCURSES) -lmagic -L/opt/homebrew/opt/libmagic/lib $(LDFLAGS_PLATFORM) -L$(LIB_DIR) -lfat_utils -lm
 ifeq ($(detected_OS),Windows)
     LDFLAGS += -lgnurx
 endif
@@ -91,7 +91,7 @@ OBJECTS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SOURCES))
 PLUGINS := $(PLUGIN_DIR)/tar_plugin$(SHARED_LIB_EXT) $(PLUGIN_DIR)/zip_plugin$(SHARED_LIB_EXT)
 
 SHARED_LIB := $(LIB_DIR)/libfat_utils$(SHARED_LIB_EXT)
-SHARED_LIB_OBJ := $(OBJ_DIR)/string_list.o
+SHARED_LIB_OBJ := $(OBJ_DIR)/logger.o $(OBJ_DIR)/string_list.o 
 
 # ==============================================================================
 # Installation Paths
@@ -122,7 +122,11 @@ $(SHARED_LIB): $(SHARED_LIB_OBJ)
 	@mkdir -p $(LIB_DIR)
 	$(CC) -shared $(SHARED_LIB_OBJ) -o $(SHARED_LIB)
 
-$(SHARED_LIB_OBJ): $(SRC_DIR)/string_list.c
+$(OBJ_DIR)/logger.o: $(SRC_DIR)/logger.c
+	@mkdir -p $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/string_list.o: $(SRC_DIR)/string_list.c
 	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -134,8 +138,11 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(PLUGIN_DIR)/%_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/%_plugin.c | $(SHARED_LIB)
-	$(CC) -shared $(CFLAGS) $< -o $@ -l$* -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
+$(PLUGIN_DIR)/tar_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/tar_plugin.c | $(SHARED_LIB)
+	$(CC) -shared $(CFLAGS) $< -o $@ -ltar -L/opt/homebrew/opt/libtar/lib -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
+
+$(PLUGIN_DIR)/zip_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/zip_plugin.c | $(SHARED_LIB)
+	$(CC) -shared $(CFLAGS) $< -o $@ -lzip -I/opt/homebrew/opt/libzip/include -L/opt/homebrew/opt/libzip/lib -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
 
 clean:
 	@$(CLEAN_CMD) obj bin lib
