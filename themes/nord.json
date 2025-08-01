@@ -1,0 +1,14 @@
+{
+  "name": "Nord",
+  "author": "Andréia Bohner",
+  "colors": {
+    "border":           { "fg": "cyan",    "bg": "default" },
+    "title":            { "fg": "white",   "bg": "default" },
+    "metadata_label":   { "fg": "white",   "bg": "default" },
+    "line_num":         { "fg": "cyan",    "bg": "default" },
+    "statusbar":        { "fg": "white",   "bg": "blue"    },
+    "search_highlight": { "fg": "black",   "bg": "yellow"  },
+    "help_border":      { "fg": "cyan",    "bg": "blue"    },
+    "help_key":         { "fg": "white",   "bg": "blue"    }
+  }
+}

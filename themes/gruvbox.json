@@ -1,0 +1,14 @@
+{
+  "name": "Gruvbox",
+  "author": "Pavel Pertsev",
+  "colors": {
+    "border":           { "fg": "yellow",  "bg": "default" },
+    "title":            { "fg": "white",   "bg": "default" },
+    "metadata_label":   { "fg": "white",   "bg": "default" },
+    "line_num":         { "fg": "yellow",  "bg": "default" },
+    "statusbar":        { "fg": "black",   "bg": "red"     },
+    "search_highlight": { "fg": "black",   "bg": "green"   },
+    "help_border":      { "fg": "black",   "bg": "red"     },
+    "help_key":         { "fg": "yellow",  "bg": "red"     }
+  }
+}

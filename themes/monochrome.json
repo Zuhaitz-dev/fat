@@ -1,0 +1,14 @@
+{
+  "name": "Monochrome",
+  "author": "Zuhaitz",
+  "colors": {
+    "border":           { "fg": "white",   "bg": "default" },
+    "title":            { "fg": "white",   "bg": "default" },
+    "metadata_label":   { "fg": "white",   "bg": "default" },
+    "line_num":         { "fg": "white",   "bg": "default" },
+    "statusbar":        { "fg": "black",   "bg": "white"   },
+    "search_highlight": { "fg": "black",   "bg": "white"   },
+    "help_border":      { "fg": "black",   "bg": "white"   },
+    "help_key":         { "fg": "black",   "bg": "white"   }
+  }
+}

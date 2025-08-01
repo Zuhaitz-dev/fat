@@ -1,0 +1,14 @@
+{
+  "name": "Solarized Dark",
+  "author": "Ethan Schoonover",
+  "colors": {
+    "border":           { "fg": "blue",    "bg": "default" },
+    "title":            { "fg": "yellow",  "bg": "default" },
+    "metadata_label":   { "fg": "white",   "bg": "default" },
+    "line_num":         { "fg": "blue",    "bg": "default" },
+    "statusbar":        { "fg": "white",   "bg": "blue"    },
+    "search_highlight": { "fg": "black",   "bg": "yellow"  },
+    "help_border":      { "fg": "white",   "bg": "blue"    },
+    "help_key":         { "fg": "yellow",  "bg": "blue"    }
+  }
+}
