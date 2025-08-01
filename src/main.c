@@ -207,8 +207,12 @@ static FatResult process_input(AppState *state, int ch) {
     switch (state->view_mode) {
         case VIEW_MODE_ARCHIVE:
             switch (ch) {
-                case KEY_DOWN: if (state->top_line + 1 < (int)state->content.count) state->top_line++; break;
-                case KEY_UP: if (state->top_line > 0) state->top_line--; break;
+                case KEY_DOWN: 
+                case 'j': 
+                    if (state->top_line + 1 < (int)state->content.count) state->top_line++; break;
+                case KEY_UP:
+                case 'k':
+                    if (state->top_line > 0) state->top_line--; break;
                 case KEY_NPAGE:
                     state->top_line += page_size;
                     if (state->top_line >= (int)state->content.count) state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;

@@ -1,0 +1,4 @@
+bin/
+fat_log.txt
+*.so
+*.o
