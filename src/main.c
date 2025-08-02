@@ -77,6 +77,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // To avoid possible warnings that break the UI. 
+    // To see the warnings, you can simply comment these two lines.
+    clear();
+    refresh();
     ui_draw(&state);
 
     int ch;
