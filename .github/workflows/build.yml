@@ -147,7 +147,7 @@ jobs:
 
   build-macos:
     needs: clean-dist
-    runs-on: macos-12
+    runs-on: macos-13
 
     steps:
       - name: Checkout code
