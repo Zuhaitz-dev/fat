@@ -11,8 +11,8 @@ on:
 permissions:
   contents: write
 
-jobs:
-  clean-dist-dir:
+jobs:  
+  clean-dist:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,8 +21,9 @@ jobs:
 
       - name: Clean dist directory
         run: rm -rf dist && mkdir -p dist
-
+        
   build-linux-amd64:
+    needs: clean-dist
     runs-on: ubuntu-latest
     container:
       image: debian:11
@@ -94,6 +95,7 @@ jobs:
           file dist/fat-x86_64
 
   build-linux-arm64:
+    needs: clean-dist
     runs-on: ubuntu-latest
     container:
       image: debian:11
@@ -144,6 +146,7 @@ jobs:
           file dist/fat-arm64
 
   build-macos:
+    needs: clean-dist
     runs-on: macos-12
 
     steps:
@@ -215,6 +218,6 @@ jobs:
         run: |
           git fetch origin main
           git checkout main
-          git add dist/
+          git add -A dist/
           git commit -m "ci: update dist binaries [skip ci]" || echo "No changes to commit"
           git push origin main
