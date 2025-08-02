@@ -1,0 +1,115 @@
+name: Build FAT Binaries
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md'
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    container:
+      image: debian:10
+
+    steps:
+      - name: Install Linux dependencies
+        run: |
+          apt-get update
+          apt-get install -y \
+            git \
+            build-essential \
+            gcc \
+            make \
+            libmagic-dev \
+            libncursesw5-dev \
+            libzip-dev \
+            libtar-dev \
+            gcc-aarch64-linux-gnu
+
+      - uses: actions/checkout@v3
+
+      - name: Set up Git user
+        run: |
+          git config --global user.email "fat-bot@fynjirby.dev"
+          git config --global user.name "FAT Bot"
+
+      - name: Build for Linux amd64
+        run: |
+          make clean
+          make release
+          mkdir -p dist
+          cp bin/fat-release dist/fat-x86_64
+
+      - name: Build for Linux arm64
+        run: |
+          make clean
+          CC=aarch64-linux-gnu-gcc make release
+          cp bin/fat-release dist/fat-arm64
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binaries
+          path: dist/*
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install macOS dependencies
+        run: |
+          brew update
+          brew install gcc make libmagic ncurses libzip libtool libtar
+
+      - name: Build for macOS arm64
+        run: |
+          make clean
+          make release
+          mkdir -p dist
+          cp bin/fat-release dist/fat-macos-arm64
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-binary
+          path: dist/fat-macos-arm64
+
+  commit-dist:
+    needs: [build-linux, build-macos]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-binaries
+          path: dist
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-binary
+          path: dist
+
+      - name: Set up Git user
+        run: |
+          git config --global user.email "fat-bot@fynjirby.dev"
+          git config --global user.name "FAT Bot"
+
+      - name: Commit and push dist binaries
+        run: |
+          git fetch origin main
+          git checkout main
+          git add dist/
+          git commit -m "ci: update dist binaries [skip ci]" || echo "No changes to commit"
+          git push origin main
