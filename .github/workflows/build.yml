@@ -12,6 +12,16 @@ permissions:
   contents: write
 
 jobs:
+  clean-dist-dir:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Clean dist directory
+        run: rm -rf dist && mkdir -p dist
+
   build-linux-amd64:
     runs-on: ubuntu-latest
     container:
