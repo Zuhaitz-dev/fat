@@ -1,4 +1,5 @@
 # FAT - File & Archive Tool
+[![Build FAT Binaries](https://github.com/Zuhaitz-dev/fat/actions/workflows/build.yml/badge.svg)](https://github.com/Zuhaitz-dev/fat/actions/workflows/build.yml)
 
 <table>
   <tr>
