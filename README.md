@@ -33,21 +33,26 @@
 
 ## Installation (AppImage - Recommended for Linux)
 
-The easiest way to get started is by downloading the latest AppImage. No installation or dependencies are required.
+The easiest way to get started is by downloading the latest Binaries or AppImage.
 
-1. **Download the AppImage**
-    Go to the project's [Releases Page](https://github.com/Zuhaitz-dev/fat/releases/) on GitHub and download the `fat-x86_64.AppImage` file.
+#### 1. Download the Binary or AppImage
+  Go to the project's [Releases Page](https://github.com/Zuhaitz-dev/fat/releases/) on GitHub and download the file for your system and arch.
 
-2. **Make it Executable**
-    You only need to do this once.
+#### 2. Make it Executable
+  You only need to do this once.
 
 ```bash
-chmod +x fat-x86_64.AppImage
+chmod +x <file you downloaded>
 ```
 
-3. **Run it!**
-    You can now run the application directly
+#### 3. Run it!
+  You can now run the application directly
 
+for binary
+```bash
+./fat-x86_64 /path/to/your/file
+```
+or for Appimage
 ```bash
 ./fat-x86_64.AppImage /path/to/your/file
 ```
@@ -81,7 +86,8 @@ Using [Homebrew](https://brew.sh/):
 brew install ncurses libmagic libzip libtar
 ```
 
-### ~~Windows~~ (Not available yet)
+<details>
+<summary><h3>Windows (Not available yet)</h3></summary>
 
 The recommended way is to use MSYS2 with the MinGW-w64 toolchain.
 
@@ -91,6 +97,7 @@ The recommended way is to use MSYS2 with the MinGW-w64 toolchain.
 ```bash
 pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-ncurses mingw-w64-x86_64-file mingw-w64-x86_64-libzip mingw-w64-x86_64-libtar
 ```
+</details>
 
 2. **Build Commands**
 
@@ -138,6 +145,8 @@ fat project.zip
 | `n` / `N`     | Go to the next/previous search result     |
 | `?`           | Show the in-app help screen               |
 
+#### Also supports Vim-like keybindings - j / k, h / l, gg / G
+
 ## Customization
 
 FAT is designed to be easily customized. On the first run, it will create a configuration directory at `~/.config/fat/` (on Linux/macOS) or `%APPDATA%\fat` (on Windows).
@@ -145,8 +154,6 @@ FAT is designed to be easily customized. On the first run, it will create a conf
 This directory will be populated with default themes. To create your own theme or modify an existing one, simply edit the `.json` files in the `~/.config/fat/themes/` directory. Your personal themes will automatically override the system-wide defaults.
 
 ## Extending FAT (Plugin Development)
-
-xtending FAT (Plugin Development)
 
 Want to add support for another archive format like `.7z` or `.rar`? It's easy! The plugin system is designed to be simple.
 
@@ -160,7 +167,7 @@ Want to add support for another archive format like `.7z` or `.rar`? It's easy! 
 
 For a complete example, see the implementations for `zip_plugin.c` and `tar_plugin.c`.
 
-> It is recommended to move the "Customization" and "Extending FAT" sections to a separate `DEVELOPMENT.md` file in a `docs/` folder to keep the main README focused on users.
+<!-- It is recommended to move the "Customization" and "Extending FAT" sections to a separate `DEVELOPMENT.md` file in a `docs/` folder to keep the main README focused on users. -->
 
 ## License
 
