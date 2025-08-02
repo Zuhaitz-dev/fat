@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  build-linux:
+  build-linux-amd64:
     runs-on: ubuntu-latest
     container:
       image: debian:11
@@ -20,17 +20,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Cache apt packages
+      - name: Cache apt packages (amd64)
         uses: actions/cache@v4
         with:
           path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-${{ hashFiles('**/lockfiles') }}
+          key: ${{ runner.os }}-apt-amd64-${{ hashFiles('**/lockfiles') }}
           restore-keys: |
-            ${{ runner.os }}-apt-
+            ${{ runner.os }}-apt-amd64-
 
-      - name: Install Linux dependencies
+      - name: Install Linux dependencies (amd64)
         run: |
-          dpkg --add-architecture arm64
           apt-get update
           apt-get install -y \
             git \
@@ -43,11 +42,6 @@ jobs:
             libncursesw5-dev \
             libzip-dev \
             libtar-dev \
-            gcc-aarch64-linux-gnu \
-            libmagic-dev:arm64 \
-            libncursesw5-dev:arm64 \
-            libzip-dev:arm64 \
-            libtar-dev:arm64 \
             fuse
 
       - name: Build for Linux amd64
@@ -78,22 +72,65 @@ jobs:
           mkdir -p dist
           mv fat-*.AppImage dist/FAT.AppImage
 
+      - name: Upload Linux amd64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binaries-amd64
+          path: dist/*
+
+      - name: Verify binary architecture (amd64)
+        run: |
+          file dist/fat-x86_64
+
+  build-linux-arm64:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:11
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache apt packages (arm64)
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-arm64-${{ hashFiles('**/lockfiles') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-arm64-
+
+      - name: Install Linux dependencies (arm64)
+        run: |
+          dpkg --add-architecture arm64
+          apt-get update
+          apt-get install -y \
+            git \
+            wget \
+            file \
+            build-essential \
+            make \
+            gcc-aarch64-linux-gnu \
+            libmagic-dev:arm64 \
+            libncursesw5-dev:arm64 \
+            libzip-dev:arm64 \
+            libtar-dev:arm64
+
       - name: Build for Linux arm64
         run: |
           make clean
           CC=aarch64-linux-gnu-gcc make release
+          mkdir -p dist
           cp bin/fat-release dist/fat-arm64
 
-      - name: Upload Linux artifacts
+      - name: Upload Linux arm64 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-binaries
-          path: dist/*
+          name: linux-binaries-arm64
+          path: dist/fat-arm64
 
-      - name: Verify binary architecture
+      - name: Verify binary architecture (arm64)
         run: |
           file dist/fat-arm64
-          file dist/fat-x86_64
 
   build-macos:
     runs-on: macos-latest
@@ -133,17 +170,23 @@ jobs:
           file dist/fat-macos-arm64
 
   commit-dist:
-    needs: [build-linux, build-macos]
+    needs: [build-linux-amd64, build-linux-arm64, build-macos]
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download Linux artifacts
+      - name: Download Linux amd64 artifacts
         uses: actions/download-artifact@v4
         with:
-          name: linux-binaries
+          name: linux-binaries-amd64
+          path: dist
+
+      - name: Download Linux arm64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-binaries-arm64
           path: dist
 
       - name: Download macOS artifact
@@ -151,7 +194,7 @@ jobs:
         with:
           name: macos-binary
           path: dist
-          
+
       - name: Set up Git user
         run: |
           git config --global user.email "fat-bot@fynjirby.dev"
