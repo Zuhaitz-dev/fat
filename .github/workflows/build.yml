@@ -85,6 +85,11 @@ jobs:
           name: linux-binaries
           path: dist/*
 
+      - name: Verify binary architecture
+        run: |
+          file dist/fat-arm64
+          file dist/fat-x86_64
+
   build-macos:
     runs-on: macos-latest
 
@@ -117,6 +122,10 @@ jobs:
         with:
           name: macos-binary
           path: dist/fat-macos-arm64
+
+      - name: Verify binary architecture
+        run: |
+          file dist/fat-macos-arm64
 
   commit-dist:
     needs: [build-linux, build-macos]
