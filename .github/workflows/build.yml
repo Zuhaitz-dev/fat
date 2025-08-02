@@ -41,7 +41,8 @@ jobs:
             libncursesw5-dev \
             libzip-dev \
             libtar-dev \
-            gcc-aarch64-linux-gnu
+            gcc-aarch64-linux-gnu \
+            fuse
 
       - name: Build for Linux amd64
         run: |
