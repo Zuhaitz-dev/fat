@@ -34,6 +34,7 @@ jobs:
           apt-get install -y \
             git \
             wget \
+            file \ 
             build-essential \
             gcc \
             make \
