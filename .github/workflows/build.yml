@@ -13,16 +13,27 @@ permissions:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
-
     container:
       image: debian:11
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ hashFiles('**/lockfiles') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+
       - name: Install Linux dependencies
         run: |
           apt-get update
           apt-get install -y \
             git \
+            wget \
             build-essential \
             gcc \
             make \
@@ -32,19 +43,20 @@ jobs:
             libtar-dev \
             gcc-aarch64-linux-gnu
 
-      - uses: actions/checkout@v3
-
-      - name: Set up Git user
-        run: |
-          git config --global user.email "fat-bot@fynjirby.dev"
-          git config --global user.name "FAT Bot"
-
       - name: Build for Linux amd64
         run: |
           make clean
           make release
           mkdir -p dist
           cp bin/fat-release dist/fat-x86_64
+      
+      - name: Build AppImage
+        run: |
+          make clean
+          make appimage
+          mkdir -p dist
+          mv fat-*.AppImage dist/FAT.AppImage
+
 
       - name: Build for Linux arm64
         run: |
@@ -62,7 +74,16 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Homebrew packages
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: ${{ runner.os }}-brew-${{ hashFiles('**/Brewfile') }}
+          restore-keys: |
+            ${{ runner.os }}-brew-
 
       - name: Install macOS dependencies
         run: |
@@ -87,7 +108,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Download Linux artifacts
         uses: actions/download-artifact@v4
@@ -100,7 +122,7 @@ jobs:
         with:
           name: macos-binary
           path: dist
-
+          
       - name: Set up Git user
         run: |
           git config --global user.email "fat-bot@fynjirby.dev"
