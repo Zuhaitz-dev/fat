@@ -49,7 +49,6 @@ ifeq ($(detected_OS),Linux)
     LDFLAGS_PLATFORM := -ldl
     CLEAN_CMD := rm -rf
     TARGET_EXT :=
-    # The -s flag is for stripping symbols, mainly used on Linux
     STRIP_FLAG := -s
 endif
 ifeq ($(detected_OS),Darwin) # macOS
@@ -78,7 +77,6 @@ COMMON_CFLAGS := -Wall -Wextra -Iinclude -fPIC -I/opt/homebrew/opt/libmagic/incl
 ifeq ($(DEBUG), 1)
 	CFLAGS := $(COMMON_CFLAGS) -g3 -O0
 else
-	# MODIFIED: Use the platform-specific STRIP_FLAG
 	CFLAGS := $(COMMON_CFLAGS) -O2 $(STRIP_FLAG)
 endif
 
@@ -95,7 +93,6 @@ OBJECTS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SOURCES))
 
 PLUGINS_SRC := tar zip
 PLUGINS_SO := $(foreach plugin,$(PLUGINS_SRC),$(PLUGIN_DIR)/$(plugin)_plugin$(SHARED_LIB_EXT))
-FP_PACKAGES := $(foreach plugin,$(PLUGINS_SRC),$(PLUGIN_DIR)/$(plugin).fp)
 
 SHARED_LIB := $(LIB_DIR)/libfat_utils$(SHARED_LIB_EXT)
 SHARED_LIB_OBJ := $(OBJ_DIR)/logger.o $(OBJ_DIR)/string_list.o
@@ -113,25 +110,17 @@ INSTALL_MAN_DIR := $(DESTDIR)$(PREFIX)/share/man/man1
 # ==============================================================================
 # Main Build Rules
 # ==============================================================================
-.PHONY: all release debug clean app plugins build_lib install uninstall package-plugins
+.PHONY: all release debug clean app plugins build_lib install uninstall
 
 all: release
 
-release: build_lib app package-plugins
+release: build_lib app plugins
 debug:
 	@$(MAKE) all DEBUG=1
 
 build_lib: $(SHARED_LIB)
 app: $(TARGET)$(TARGET_EXT)
 plugins: $(PLUGINS_SO)
-
-package-plugins: $(FP_PACKAGES)
-
-$(PLUGIN_DIR)/%.fp: $(PLUGIN_DIR)/%_plugin$(SHARED_LIB_EXT) $(PLUGIN_DIR)/%_manifest.json
-	@echo "Packaging $@..."
-	@rm -f $@
-	@(cd $(PLUGIN_DIR) && zip -q $(notdir $@) $(notdir $<) $(notdir $(word 2, $^)))
-
 
 $(SHARED_LIB): $(SHARED_LIB_OBJ)
 	@mkdir -p $(LIB_DIR)
@@ -156,18 +145,16 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 $(PLUGIN_DIR)/tar_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/tar_plugin.c | $(SHARED_LIB)
 	$(CC) -shared $(CFLAGS) $< -o $@ -ltar -L/opt/homebrew/opt/libtar/lib -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
 
-# MODIFIED: Added the -L flag for libzip's location on macOS
 $(PLUGIN_DIR)/zip_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/zip_plugin.c | $(SHARED_LIB)
 	$(CC) -shared $(CFLAGS) $< -o $@ -lzip -I/opt/homebrew/opt/libzip/include -L/opt/homebrew/opt/libzip/lib -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
-
 
 clean:
 	@$(CLEAN_CMD) obj bin lib
 	@$(CLEAN_CMD) $(PLUGIN_DIR)/*.so $(PLUGIN_DIR)/*.dll $(PLUGIN_DIR)/*.dylib
 	@$(CLEAN_CMD) $(PLUGIN_DIR)/*.fp
 	@echo "Project cleaned."
-.PHONY: distclean
 
+.PHONY: distclean
 distclean: clean
 	@echo "Cleaning distribution files..."
 	@$(CLEAN_CMD) AppDir
@@ -176,7 +163,7 @@ distclean: clean
 # ==============================================================================
 # Installation Rules
 # ==============================================================================
-install: release
+install: all
 	@echo "Installing FAT to $(PREFIX)..."
 	@mkdir -p $(INSTALL_BIN_DIR)
 	@mkdir -p $(INSTALL_PLUGINS_DIR)
@@ -184,7 +171,7 @@ install: release
 	@mkdir -p $(INSTALL_MAN_DIR)
 	install -m 755 $(TARGET)$(TARGET_EXT) $(INSTALL_BIN_DIR)/fat$(TARGET_EXT)
 	install -m 644 $(SHARED_LIB) $(INSTALL_LIB_DIR)
-	install -m 644 $(PLUGIN_DIR)/*.fp $(INSTALL_PLUGINS_DIR)
+	install -m 644 $(PLUGIN_DIR)/*_plugin$(SHARED_LIB_EXT) $(INSTALL_PLUGINS_DIR)
 	install -m 644 $(THEMES_DIR)/*.json $(INSTALL_THEMES_DIR)
 	install -m 644 $(MAN_DIR)/fat.1 $(INSTALL_MAN_DIR)/fat.1
 	@echo "Installation complete."
@@ -204,7 +191,6 @@ uninstall:
 # AppImage Packaging
 # ==============================================================================
 .PHONY: appimage
-
 appimage: release
 	@echo "Creating AppImage..."
 	@$(CLEAN_CMD) AppDir

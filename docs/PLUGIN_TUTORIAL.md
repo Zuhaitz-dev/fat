@@ -135,25 +135,7 @@ gcc -shared -fPIC -o zip_plugin.so zip_plugin.c \
     -lzip # Link against the libzip library
 ```
 
-## 4. Packaging the `.fp` File
-
-### 4.1. Create the `manifest.json`
-
-This file describes your plugin. For the ZIP plugin, it looks like this:
-
-```json
-{
-  "name": "ZIP Archive Handler",
-  "author": "Zuhaitz",
-  "version": "1.0.0",
-  "description": "Adds support for reading .zip archives using libzip.",
-  "fat_version_min": "v0.1.0-beta - (Betelgeuse)",
-  "binary_path": "zip_plugin.so",
-  "supported_extensions": [".zip"]
-}
-```
-
-## 5. Installing the Plugin
+## 4. Installing the Plugin
 
 Installation is simple:
 

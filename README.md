@@ -161,15 +161,15 @@ This directory will be populated with default themes. To create your own theme o
 
 Want to add support for another archive format like `.7z` or `.rar`? It's easy! The plugin system is designed to be simple.
 
-1. **Implement the API**: Include the `plugin_api.h` header in your C file. Implement the three required functions (`can_handle`, `list_contents`, `extract_entry`) and export a `plugin_register` function that returns a struct of your function pointers.
+1. Include the `plugin_api.h` header in your C file.
 
-2. **Create a Manifest**: Create a `manifest.json` file to describe your plugin. This file includes metadata like the plugin's name, author, version, and the name of its compiled binary.
+2. Implement the four required functions: `can_handle`, `list_contents`, and `extract_entry`.
 
-3. **Compile the Plugin**: Compile your C code into a standard shared library (`.so`, `.dll`, or `.dylib`).
+3. Export a `plugin_register` function that returns a struct of your function pointers.
 
-4. **Package the** `.fp` **File**: Use a standard zip utility to package your compiled shared library and your `manifest.json` into a single `.fp` archive. For example: `zip my_plugin.fp my_plugin.so manifest.json`. The user can then install your plugin by simply placing this file in their `~/.config/fat/plugins/` directory.
+4. Compile your plugin as a shared library (`.so`, `.dll`, or `.dylib`) and place it in the plugins folder.
 
-For a complete example, see the implementations for `zip_plugin.c` and `tar_plugin.c` in the `plugins/` directory.
+For a complete example, see the implementations for `zip_plugin.c` and `tar_plugin.c`.
 
 <!-- It is recommended to move the "Customization" and "Extending FAT" sections to a separate `DEVELOPMENT.md` file in a `docs/` folder to keep the main README focused on users. -->
 

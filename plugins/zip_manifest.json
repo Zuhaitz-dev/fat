@@ -1,9 +1,0 @@
-{
-  "name": "ZIP Archive Handler",
-  "author": "Zuhaitz",
-  "version": "1.0.0",
-  "description": "Adds support for reading .zip archives using libzip.",
-  "fat_version_min": "v0.1.0-beta - (Betelgeuse)",
-  "binary_path": "zip_plugin.so",
-  "supported_extensions": [".zip"]
-}
