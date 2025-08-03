@@ -116,6 +116,42 @@ FatResult state_init(AppState *state, const char *filepath) {
              theme_load(state->theme_paths.lines[0], &state->theme);
         }
     }
+    
+    // **NEW: Hardcoded Fallback Theme**
+    if (state->theme == NULL) {
+        LOG_INFO("No themes found or loaded. Applying hardcoded monochrome fallback.");
+        state->theme = calloc(1, sizeof(Theme));
+        if (state->theme) {
+            state->theme->name = strdup("Monochrome");
+            state->theme->author = strdup("Zuhaitz");
+
+            // Define the monochrome theme colors directly
+            state->theme->colors[THEME_ELEMENT_BORDER].fg = COLOR_WHITE;
+            state->theme->colors[THEME_ELEMENT_BORDER].bg = -1; // Default background
+
+            state->theme->colors[THEME_ELEMENT_TITLE].fg = COLOR_WHITE;
+            state->theme->colors[THEME_ELEMENT_TITLE].bg = -1;
+
+            state->theme->colors[THEME_ELEMENT_METADATA_LABEL].fg = COLOR_WHITE;
+            state->theme->colors[THEME_ELEMENT_METADATA_LABEL].bg = -1;
+
+            state->theme->colors[THEME_ELEMENT_LINE_NUM].fg = COLOR_WHITE;
+            state->theme->colors[THEME_ELEMENT_LINE_NUM].bg = -1;
+
+            state->theme->colors[THEME_ELEMENT_STATUSBAR].fg = COLOR_BLACK;
+            state->theme->colors[THEME_ELEMENT_STATUSBAR].bg = COLOR_WHITE;
+
+            state->theme->colors[THEME_ELEMENT_SEARCH_HIGHLIGHT].fg = COLOR_BLACK;
+            state->theme->colors[THEME_ELEMENT_SEARCH_HIGHLIGHT].bg = COLOR_WHITE;
+            
+            state->theme->colors[THEME_ELEMENT_HELP_BORDER].fg = COLOR_BLACK;
+            state->theme->colors[THEME_ELEMENT_HELP_BORDER].bg = COLOR_WHITE;
+
+            state->theme->colors[THEME_ELEMENT_HELP_KEY].fg = COLOR_BLACK;
+            state->theme->colors[THEME_ELEMENT_HELP_KEY].bg = COLOR_WHITE;
+        }
+    }
+
     if (state->theme) {
         theme_apply(state->theme);
     }
