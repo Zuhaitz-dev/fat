@@ -60,15 +60,19 @@ jobs:
           tar -czvf ../fat-linux-x86_64.tar.gz .
           cd ..
 
-      - name: Build AppImage (Reliable FUSE-less method)
+      - name: Download and prepare linuxdeploy
         run: |
-          # Download and extract linuxdeploy to avoid FUSE issues
           wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           chmod +x linuxdeploy-x86_64.AppImage
           ./linuxdeploy-x86_64.AppImage --appimage-extract
 
-          # Run the extracted AppRun to build the AppImage
-          ./squashfs-root/AppRun --appdir AppDir --executable bin/fat-release --output appimage
+      - name: Patch Makefile for FUSE-less AppImage build
+        run: |
+          # Replace the direct AppImage call with the extracted AppRun executable
+          sed -i 's|./linuxdeploy-x86_64.AppImage|./squashfs-root/AppRun|g' Makefile
+
+      - name: Build AppImage using Makefile
+        run: make appimage
 
       - name: Upload Linux amd64 artifacts
         uses: actions/upload-artifact@v4
