@@ -49,6 +49,8 @@ ifeq ($(detected_OS),Linux)
     LDFLAGS_PLATFORM := -ldl
     CLEAN_CMD := rm -rf
     TARGET_EXT :=
+    # The -s flag is for stripping symbols, mainly used on Linux
+    STRIP_FLAG := -s
 endif
 ifeq ($(detected_OS),Darwin) # macOS
     SHARED_LIB_EXT := .dylib
@@ -56,6 +58,7 @@ ifeq ($(detected_OS),Darwin) # macOS
     LDFLAGS_PLATFORM := -ldl
     CLEAN_CMD := rm -rf
     TARGET_EXT :=
+    STRIP_FLAG :=
 endif
 ifeq ($(detected_OS),Windows)
     SHARED_LIB_EXT := .dll
@@ -64,6 +67,7 @@ ifeq ($(detected_OS),Windows)
     LDFLAGS_PLATFORM :=
     CLEAN_CMD := cmd /c rmdir /s /q
     TARGET_EXT := .exe
+    STRIP_FLAG := -s
 endif
 
 # ==============================================================================
@@ -74,10 +78,11 @@ COMMON_CFLAGS := -Wall -Wextra -Iinclude -fPIC -I/opt/homebrew/opt/libmagic/incl
 ifeq ($(DEBUG), 1)
 	CFLAGS := $(COMMON_CFLAGS) -g3 -O0
 else
-	CFLAGS := $(COMMON_CFLAGS) -O2 -s
+	# MODIFIED: Use the platform-specific STRIP_FLAG
+	CFLAGS := $(COMMON_CFLAGS) -O2 $(STRIP_FLAG)
 endif
 
-LDFLAGS := $(LDFLAGS_NCURSES) -lmagic -L/opt/homebrew/opt/libmagic/lib $(LDFLAGS_PLATFORM) -L$(LIB_DIR) -lfat_utils -lm -lzip
+LDFLAGS := $(LDFLAGS_NCURSES) -lmagic -L/opt/homebrew/opt/libmagic/lib $(LDFLAGS_PLATFORM) -L$(LIB_DIR) -lfat_utils -lm -lzip -L/opt/homebrew/opt/libzip/lib
 ifeq ($(detected_OS),Windows)
     LDFLAGS += -lgnurx
 endif
@@ -88,7 +93,6 @@ endif
 SOURCES := $(filter-out $(SRC_DIR)/string_list.c, $(wildcard $(SRC_DIR)/*.c))
 OBJECTS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SOURCES))
 
-# Define plugin sources and their final .fp packages
 PLUGINS_SRC := tar zip
 PLUGINS_SO := $(foreach plugin,$(PLUGINS_SRC),$(PLUGIN_DIR)/$(plugin)_plugin$(SHARED_LIB_EXT))
 FP_PACKAGES := $(foreach plugin,$(PLUGINS_SRC),$(PLUGIN_DIR)/$(plugin).fp)
@@ -113,7 +117,6 @@ INSTALL_MAN_DIR := $(DESTDIR)$(PREFIX)/share/man/man1
 
 all: release
 
-# Release now depends on **package-plugins**
 release: build_lib app package-plugins
 debug:
 	@$(MAKE) all DEBUG=1
@@ -153,6 +156,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 $(PLUGIN_DIR)/tar_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/tar_plugin.c | $(SHARED_LIB)
 	$(CC) -shared $(CFLAGS) $< -o $@ -ltar -L/opt/homebrew/opt/libtar/lib -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
 
+# MODIFIED: Added the -L flag for libzip's location on macOS
 $(PLUGIN_DIR)/zip_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/zip_plugin.c | $(SHARED_LIB)
 	$(CC) -shared $(CFLAGS) $< -o $@ -lzip -I/opt/homebrew/opt/libzip/include -L/opt/homebrew/opt/libzip/lib -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
 
@@ -160,7 +164,7 @@ $(PLUGIN_DIR)/zip_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/zip_plugin.c | $(SHARED
 clean:
 	@$(CLEAN_CMD) obj bin lib
 	@$(CLEAN_CMD) $(PLUGIN_DIR)/*.so $(PLUGIN_DIR)/*.dll $(PLUGIN_DIR)/*.dylib
-	@$(CLEAN_CMD) $(PLUGIN_DIR)/*.fp # Also clean the .fp files
+	@$(CLEAN_CMD) $(PLUGIN_DIR)/*.fp
 	@echo "Project cleaned."
 .PHONY: distclean
 
@@ -203,27 +207,18 @@ uninstall:
 
 appimage: release
 	@echo "Creating AppImage..."
-	# 1. Clean up any previous AppDir
 	@$(CLEAN_CMD) AppDir
-
-	# 2. Use the existing 'install' rule to create the AppDir structure
 	@$(MAKE) install DESTDIR=AppDir
-
-	# 3. Copy the desktop file and icon into the AppDir
 	@mkdir -p AppDir/usr/share/applications/
 	@cp fat.desktop AppDir/usr/share/applications/
 	@mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps/
 	@cp fat.png AppDir/usr/share/icons/hicolor/256x256/apps/
 
-	# 4. Download linuxdeploy if it doesn't exist
 	@if [ ! -f linuxdeploy-x86_64.AppImage ]; then \
 		echo "Downloading linuxdeploy..."; \
 		wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage; \
 		chmod +x linuxdeploy-x86_64.AppImage; \
 	fi
-
-	# 5. Run linuxdeploy to bundle dependencies and create the final AppImage
-	# The --executable flag ensures the main binary is found correctly.
 	@./linuxdeploy-x86_64.AppImage --appdir AppDir --executable AppDir/usr/local/bin/fat --output appimage
 
 	@echo "AppImage created successfully!"
