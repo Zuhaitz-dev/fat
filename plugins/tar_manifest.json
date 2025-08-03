@@ -1,0 +1,9 @@
+{
+  "name": "TAR Archive Handler",
+  "author": "Zuhaitz",
+  "version": "1.0.0",
+  "description": "Adds support for reading .tar archives using libtar.",
+  "fat_version_min": "v0.1.0-beta - (Betelgeuse)",
+  "binary_path": "tar_plugin.so",
+  "supported_extensions": [".tar"]
+}

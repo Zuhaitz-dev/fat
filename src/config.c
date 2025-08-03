@@ -98,29 +98,38 @@ static void copy_default_themes(const char* user_themes_dir) {
 }
 
 /**
- * @brief Copies default plugins from the system path to the user's config path.
- * THIS IS THE NEW FUNCTION
+ * @brief Copies default plugins from the system path or dev path to the user's config path.
  */
 static void copy_default_plugins(const char* user_plugins_dir) {
     char system_plugins_dir[PATH_MAX];
-    snprintf(system_plugins_dir, sizeof(system_plugins_dir), "%s/lib/fat/plugins", INSTALL_PREFIX);
+    const char* source_plugins_dir = NULL;
 
-    if (!dir_exists(system_plugins_dir)) {
-        LOG_INFO("System plugins directory not found at '%s', cannot copy defaults.", system_plugins_dir);
+    // First, check the official installation directory
+    snprintf(system_plugins_dir, sizeof(system_plugins_dir), "%s/lib/fat/plugins", INSTALL_PREFIX);
+    if (dir_exists(system_plugins_dir)) {
+        source_plugins_dir = system_plugins_dir;
+    }
+    // If not found, fall back to the local development directory
+    else if (dir_exists("plugins")) {
+        source_plugins_dir = "plugins";
+    }
+
+    if (!source_plugins_dir) {
+        LOG_INFO("No source plugin directory found. Looked in '%s' and './plugins'. Cannot copy defaults.", system_plugins_dir);
         return;
     }
 
-    DIR* d = opendir(system_plugins_dir);
+    DIR* d = opendir(source_plugins_dir);
     if (!d) return;
 
-    LOG_INFO("Copying default plugins to %s", user_plugins_dir);
+    LOG_INFO("Copying default plugins from '%s' to '%s'", source_plugins_dir, user_plugins_dir);
     struct dirent* dir;
     while ((dir = readdir(d)) != NULL) {
         const char* dot = strrchr(dir->d_name, '.');
-        if (dot && (strcmp(dot, ".so") == 0 || strcmp(dot, ".dll") == 0 || strcmp(dot, ".dylib") == 0)) {
+        if (dot && strcmp(dot, ".fp") == 0) {
             char src_path[PATH_MAX];
             char dest_path[PATH_MAX];
-            snprintf(src_path, sizeof(src_path), "%s/%s", system_plugins_dir, dir->d_name);
+            snprintf(src_path, sizeof(src_path), "%s/%s", source_plugins_dir, dir->d_name);
             snprintf(dest_path, sizeof(dest_path), "%s/%s", user_plugins_dir, dir->d_name);
             copy_file(src_path, dest_path);
         }

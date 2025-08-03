@@ -132,7 +132,10 @@ FatResult state_init(AppState *state, const char *filepath) {
         bool is_binary = false;
         if (magic_cookie && magic_load(magic_cookie, NULL) == 0) {
             const char* magic_full = magic_file(magic_cookie, filepath);
-            if (magic_full && (strncmp(magic_full, "application/", 12) == 0 || strncmp(magic_full, "image/", 6) == 0 || strncmp(magic_full, "video/", 6) == 0)) {
+            if (magic_full && 
+               (strncmp(magic_full, "application/", 12) == 0 && strcmp(magic_full, "application/json") != 0) || // MODIFIED LINE
+                strncmp(magic_full, "image/", 6) == 0 || 
+                strncmp(magic_full, "video/", 6) == 0) {
                 is_binary = true;
             }
         }

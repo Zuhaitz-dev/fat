@@ -1,0 +1,8 @@
+This is a sample text file for the FAT project.
+
+It demonstrates how the tool handles plain text.
+You can test features like:
+  - Scrolling (j/k, PageUp/PageDown)
+  - Searching (/)
+  - Line wrapping (w)
+  - Jumping to lines (o, gg, G)
