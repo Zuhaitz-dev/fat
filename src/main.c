@@ -9,10 +9,12 @@
 #include "logger.h"
 #include "error.h"
 #include "utf8_utils.h"
+#include "config.h"
 #include <locale.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -39,7 +41,15 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    logger_init("fat_log.txt");
+    char config_dir[PATH_MAX];
+    char log_path[PATH_MAX];
+    if (get_config_dir(config_dir, sizeof(config_dir)) == 0) {
+        snprintf(log_path, sizeof(log_path), "%s/fat.log", config_dir);
+    } else {
+        snprintf(log_path, sizeof(log_path), "fat.log");
+    }
+
+    logger_init(log_path);
     LOG_INFO("Application starting.");
     setlocale(LC_ALL, "");
 
@@ -77,7 +87,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // To avoid possible warnings that break the UI. 
+    // To avoid possible warnings that break the UI.
     // To see the warnings, you can simply comment these two lines.
     clear();
     refresh();

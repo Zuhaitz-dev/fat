@@ -26,8 +26,8 @@ void logger_init(const char* log_file) {
     if (log_fp) {
         fclose(log_fp);
     }
-    // Open in write mode ('w') to clear old logs on each application run.
-    log_fp = fopen(log_file, "w");
+    // Open in append mode ('a') to preserve old logs on each application run.
+    log_fp = fopen(log_file, "a");
     if (!log_fp) {
         // This is a fatal initialization error. Print to stderr as a last resort,
         // as the logger itself has failed.
