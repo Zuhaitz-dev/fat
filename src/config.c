@@ -126,7 +126,11 @@ static void copy_default_plugins(const char* user_plugins_dir) {
     struct dirent* dir;
     while ((dir = readdir(d)) != NULL) {
         const char* dot = strrchr(dir->d_name, '.');
-        if (dot && strcmp(dot, ".fp") == 0) {
+        #ifdef _WIN32
+            if (dot && strcmp(dot, ".dll") == 0) {
+        #else
+            if (dot && (strcmp(dot, ".so") == 0 || strcmp(dot, ".dylib") == 0)) {
+        #endif
             char src_path[PATH_MAX];
             char dest_path[PATH_MAX];
             snprintf(src_path, sizeof(src_path), "%s/%s", source_plugins_dir, dir->d_name);

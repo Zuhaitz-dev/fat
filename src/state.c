@@ -44,7 +44,7 @@ FatResult state_init(AppState *state, const char *filepath) {
         // This now handles the entire first-run process correctly.
         config_load(state);
 
-        // --- Discover Themes (User, System, and Dev) ---
+        // **Discover Themes (User, System, and Dev)**
         char user_config_dir[PATH_MAX];
         if (get_config_dir(user_config_dir, sizeof(user_config_dir)) == 0) {
             char user_themes_dir[PATH_MAX];
@@ -53,7 +53,7 @@ FatResult state_init(AppState *state, const char *filepath) {
                 theme_discover(user_themes_dir, &state->theme_paths);
             }
         }
-        
+
         char system_themes_dir[PATH_MAX];
         snprintf(system_themes_dir, sizeof(system_themes_dir), "%s/share/fat/themes", INSTALL_PREFIX);
         if (dir_exists(system_themes_dir)) {
@@ -64,7 +64,15 @@ FatResult state_init(AppState *state, const char *filepath) {
              theme_discover("themes", &state->theme_paths);
         }
 
-        // --- Load Plugins (System or Dev) ---
+        // **Load Plugins (User, System, and Dev)**
+        if (get_config_dir(user_config_dir, sizeof(user_config_dir)) == 0) {
+            char user_plugins_dir[PATH_MAX];
+            snprintf(user_plugins_dir, sizeof(user_plugins_dir), "%s/plugins", user_config_dir);
+            if (dir_exists(user_plugins_dir)) {
+                pm_load_plugins(user_plugins_dir);
+            }
+        }
+
         char system_plugins_dir[PATH_MAX];
         snprintf(system_plugins_dir, sizeof(system_plugins_dir), "%s/lib/fat/plugins", INSTALL_PREFIX);
         if (dir_exists(system_plugins_dir)) {
@@ -116,8 +124,8 @@ FatResult state_init(AppState *state, const char *filepath) {
              theme_load(state->theme_paths.lines[0], &state->theme);
         }
     }
-    
-    // **NEW: Hardcoded Fallback Theme**
+
+    // **Hardcoded Fallback Theme**
     if (state->theme == NULL) {
         LOG_INFO("No themes found or loaded. Applying hardcoded monochrome fallback.");
         state->theme = calloc(1, sizeof(Theme));
@@ -143,7 +151,7 @@ FatResult state_init(AppState *state, const char *filepath) {
 
             state->theme->colors[THEME_ELEMENT_SEARCH_HIGHLIGHT].fg = COLOR_BLACK;
             state->theme->colors[THEME_ELEMENT_SEARCH_HIGHLIGHT].bg = COLOR_WHITE;
-            
+
             state->theme->colors[THEME_ELEMENT_HELP_BORDER].fg = COLOR_BLACK;
             state->theme->colors[THEME_ELEMENT_HELP_BORDER].bg = COLOR_WHITE;
 
@@ -168,9 +176,9 @@ FatResult state_init(AppState *state, const char *filepath) {
         bool is_binary = false;
         if (magic_cookie && magic_load(magic_cookie, NULL) == 0) {
             const char* magic_full = magic_file(magic_cookie, filepath);
-            if (magic_full && 
+            if (magic_full &&
                (strncmp(magic_full, "application/", 12) == 0 && strcmp(magic_full, "application/json") != 0) || // MODIFIED LINE
-                strncmp(magic_full, "image/", 6) == 0 || 
+                strncmp(magic_full, "image/", 6) == 0 ||
                 strncmp(magic_full, "video/", 6) == 0) {
                 is_binary = true;
             }

@@ -28,6 +28,19 @@ static ArchivePlugin* loaded_plugins[MAX_PLUGINS];
 static int num_plugins = 0;
 
 /**
+ * @brief Checks if a plugin with the same name is already loaded.
+ */
+static bool is_plugin_already_loaded(const char* plugin_name) {
+    for (int i = 0; i < num_plugins; i++) {
+        if (strcmp(loaded_plugins[i]->plugin_name, plugin_name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+/**
  * @brief Loads all plugins from the specified directory.
  *
  * @param plugin_dir_path The path to the directory containing plugin files.
@@ -87,8 +100,20 @@ void pm_load_plugins(const char* plugin_dir_path) {
             }
 #endif
             // Call the register function to get the plugin's interface struct.
-            loaded_plugins[num_plugins] = reg_func();
-            LOG_INFO("Successfully loaded plugin: %s", loaded_plugins[num_plugins]->plugin_name);
+            ArchivePlugin* new_plugin = reg_func();
+
+            if (is_plugin_already_loaded(new_plugin->plugin_name)) {
+                LOG_INFO("Plugin '%s' from '%s' was skipped because a plugin with the same name is already loaded.", new_plugin->plugin_name, full_path);
+                #ifdef _WIN32
+                    FreeLibrary(handle);
+                #else
+                    dlclose(handle);
+                #endif
+                continue;
+            }
+            
+            loaded_plugins[num_plugins] = new_plugin;
+            LOG_INFO("Successfully loaded plugin: %s (from %s)", loaded_plugins[num_plugins]->plugin_name, full_path);
             num_plugins++;
         }
     }
