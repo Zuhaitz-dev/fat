@@ -236,7 +236,7 @@ void ui_show_message(const AppState *state, const char *message) {
  */
 void ui_show_help(const AppState* state) {
     int height, width; getmaxyx(stdscr, height, width);
-    int help_h = 17, help_w = 55;
+    int help_h = 22, help_w = 55; // Increased height to 22
     int start_y = (height - help_h) / 2;
     int start_x = (width - help_w) / 2;
     WINDOW* help_win = newwin(help_h, help_w, start_y, start_x);
@@ -269,13 +269,14 @@ void ui_show_help(const AppState* state) {
             {"PgUp/PgDn", "Scroll page by page"}, {"G", "Jump to end of content"},
             {"gg", "Jump to beginning of content"}, {"o", "Go to line"},
             {"w", "Toggle line wrapping (Text mode)"}, {"/", "Search for text/hex"},
+            {"t", "Toggle Text/Hex View"}, {"O", "Open with external command"},
             {"n/N", "Next/prev search match"}, {"F2", "Change theme"},
             {"Esc", "Go back (from archive)"}, {"?", "Show this help screen"},
             {"q", "Quit the application"}
         };
-        for (int i = 0; i < 13; i++) {
+        for (int i = 0; i < 15; i++) {
             wattron(help_win, COLOR_PAIR(COLOR_PAIR_HELP_KEY) | A_BOLD);
-            mvwprintw(help_win, i + 2, 3, "%-12s", keys[i][0]);
+            mvwprintw(help_win, i + 3, 3, "%-12s", keys[i][0]); // Start at line 3
             wattroff(help_win, COLOR_PAIR(COLOR_PAIR_HELP_KEY) | A_BOLD);
             wprintw(help_win, ": %s", keys[i][1]);
         }
@@ -339,6 +340,45 @@ void ui_get_search_input(AppState *state) {
     strncpy(state->search_term, temp_buffer, sizeof(state->search_term) - 1); // Copy input to app state
     state->search_term[sizeof(state->search_term) - 1] = '\0'; // Ensure null-termination
 }
+
+/**
+ * @brief Gets a shell command from the user via the status bar.
+ */
+void ui_get_command_input(AppState *state, char* buffer, size_t buffer_size) {
+    WINDOW *bar = state->status_bar;
+    buffer[0] = '\0';
+    int pos = 0;
+
+    state->mode = MODE_COMMAND_INPUT;
+    ui_draw(state); // Redraw to show command input mode
+
+    curs_set(1);
+    keypad(bar, TRUE);
+    int ch;
+    while (1) {
+        mvwprintw(bar, 0, 11, "Open with: %-s", buffer);
+        wclrtoeol(bar);
+        wmove(bar, 0, 11 + strlen("Open with: ") + pos);
+
+        ch = wgetch(bar);
+        if (ch == '\n' || ch == KEY_ENTER) break;
+        if (ch == 27) { // Escape
+            buffer[0] = '\0';
+            break;
+        }
+        if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b') {
+            if (pos > 0) { pos--; buffer[pos] = '\0'; }
+        } else if (isprint(ch) && (size_t)pos < (buffer_size - 1)) {
+            buffer[pos] = (char)ch;
+            pos++;
+            buffer[pos] = '\0';
+        }
+    }
+    curs_set(0);
+    keypad(bar, FALSE);
+    state->mode = MODE_NORMAL;
+}
+
 
 /**
  * @brief Gets a line number from the user via the status bar.
@@ -583,7 +623,10 @@ static void draw_statusbar(const AppState *state) {
     wattron(win, A_BOLD);
     if (state->mode == MODE_SEARCH_INPUT) {
         mvwprintw(win, 0, 1, "[SEARCH]");
-    } else {
+    } else if (state->mode == MODE_COMMAND_INPUT) {
+        mvwprintw(win, 0, 1, "[COMMAND]");
+    }
+    else {
         switch (state->view_mode) {
             case VIEW_MODE_ARCHIVE: mvwprintw(win, 0, 1, "[ARCHIVE]"); break;
             case VIEW_MODE_BINARY_HEX: mvwprintw(win, 0, 1, "[BINARY]"); break;

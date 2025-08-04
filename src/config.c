@@ -175,10 +175,33 @@ static void ensure_config_subdirs_exist(const char* dir_path) {
 }
 
 /**
+ * @brief Helper to parse comma-separated values from the config file.
+ */
+static void parse_csv_to_stringlist(const char* value, StringList* list) {
+    char* value_copy = strdup(value);
+    if (!value_copy) return;
+
+    char* token = strtok(value_copy, ",");
+    while (token) {
+        // Trim whitespace from token
+        char* start = token;
+        while (isspace((unsigned char)*start)) start++;
+        char* end = start + strlen(start) - 1;
+        while (end > start && isspace((unsigned char)*end)) *end-- = '\0';
+        
+        StringList_add(list, start);
+        token = strtok(NULL, ",");
+    }
+    free(value_copy);
+}
+
+/**
  * @brief Loads user settings, creating defaults and copying themes on first run.
  */
 void config_load(AppState* state) {
     state->config.default_theme_name = NULL;
+    StringList_init(&state->config.text_mimes);
+    StringList_init(&state->config.binary_mimes);
 
     char config_dir[PATH_MAX];
     if (get_config_dir(config_dir, sizeof(config_dir)) != 0) {
@@ -204,6 +227,14 @@ void config_load(AppState* state) {
             fprintf(create_file, "# FAT (File & Archive Tool) Configuration File\n\n");
             fprintf(create_file, "# Set the default theme by its name (without the .json extension).\n");
             fprintf(create_file, "# Example: default_theme = nord\n\n");
+            fprintf(create_file, "# --- MIME Type Configuration ---\n");
+            fprintf(create_file, "# Force files with these MIME types to be treated as text or binary.\n");
+            fprintf(create_file, "# Values are comma-separated.\n");
+            fprintf(create_file, "# Example: text_mimes = application/json, application/xml\n");
+            fprintf(create_file, "# Example: binary_mimes = application/octet-stream\n");
+            fprintf(create_file, "text_mimes = application/json\n");
+            fprintf(create_file, "binary_mimes =\n");
+
             fclose(create_file);
 
             // Copy themes on first run
@@ -240,6 +271,10 @@ void config_load(AppState* state) {
 
             if (strcmp(key, "default_theme") == 0) {
                 state->config.default_theme_name = strdup(value);
+            } else if (strcmp(key, "text_mimes") == 0) {
+                parse_csv_to_stringlist(value, &state->config.text_mimes);
+            } else if (strcmp(key, "binary_mimes") == 0) {
+                parse_csv_to_stringlist(value, &state->config.binary_mimes);
             }
         }
     }
@@ -256,4 +291,6 @@ void config_free(AppState* state) {
     if (!state) return;
     free(state->config.default_theme_name);
     state->config.default_theme_name = NULL;
+    StringList_free(&state->config.text_mimes);
+    StringList_free(&state->config.binary_mimes);
 }

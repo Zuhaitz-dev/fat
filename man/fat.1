@@ -1,27 +1,37 @@
-.TH FAT 1 "July 31, 2025" "v0.1.0-beta" "FAT User Manual"
+.TH FAT 1 "August 04, 2025" "v0.1.0-beta" "FAT User Manual"
 
 .SH NAME
 fat \- a TUI file and archive viewer
 
 .SH SYNOPSIS
 .B fat
-[\fIFILE\fR]
+[\fIOPTIONS\fR] [\fIFILE\fR]
 
 .SH DESCRIPTION
 .B fat
-is a modern, TUI-based file and archive viewer for the terminal.
-It is designed to quickly inspect text files, binary files (in a hex-dump view), and the contents of archives without needing to extract them first.
-It features a two-pane layout, with file metadata displayed on the left and content on the right.
+is a modern, TUI-based file and archive viewer for the terminal. It is designed to quickly inspect text files, binary files (in a hex-dump view), and the contents of archives without needing to extract them first. It features a two-pane layout, with file metadata displayed on the left and content on the right.
+
+.SH OPTIONS
+.TP
+\fB\--force-text\fR
+Force the file to be opened in text mode, overriding any plugin or default behavior.
+.TP
+\fB\--force-hex\fR
+Force the file to be opened in hex mode, overriding any plugin or default behavior.
+.TP
+\fB-h, \--help\fR
+Show the command-line help message and exit.
+
 .SH FEATURES
 .IP "•" 4
 \fBPlugin-based Archive Support:\fR Natively handles .zip and .tar archives through a dynamic plugin system.
 .IP "•" 4
 \fBHex Viewer:\fR Automatically displays binary files in a traditional hex-dump format (offset, hex bytes, ASCII).
 .IP "•" 4
-\fBTheming:\fR Customize the entire UI using simple .json theme files.
-Default themes are copied to \fI~/.config/fat/themes/\fR on first run.
+\fBTheming:\fR Customize the entire UI using simple .json theme files. Default themes are copied to \fI~/.config/fat/themes/\fR on first run.
 .IP "•" 4
 \fBSearch:\fR Full-text search within text files and hex-value search within the binary viewer.
+
 .SH KEYBINDINGS
 The following keybindings are available in the main viewer:
 
@@ -48,22 +58,27 @@ Go back to the parent archive or clear the current search.
 Open the theme selector menu to change the UI theme on the fly.
 .TP
 .B /
-Enter search mode.
-Type a term and press Enter to find the first match.
+Enter search mode. Type a term and press Enter to find the first match.
 .TP
 .B n / N
 Find the next or previous search match.
 .TP
+.B t
+Toggle the view between normal text and binary (hex) mode for the current file.
+.TP
+.B O
+Open the current file with an external command (e.g., "vim", "less").
+.TP
 .B ?
 Display the in-app help screen.
+
 .SH FILES
 .TP
 \fI~/.config/fat/fatrc\fR
-The user-specific configuration file. Created on first run.
+The user-specific configuration file. Created on first run. Can be edited to set a default theme and define custom MIME type associations for text or hex viewing.
 .TP
 \fI~/.config/fat/themes/\fR
-User-specific directory for custom \fB.json\fR theme files.
-Themes placed here will be available in the theme selector (F2).
+User-specific directory for custom \fB.json\fR theme files. Themes placed here will be available in the theme selector (F2).
 .TP
 \fI~/.config/fat/plugins/\fR
 User-specific directory for custom plugin shared libraries (\fB.so\fR, \fB.dylib\fR).
@@ -73,6 +88,7 @@ System-wide directory for default themes.
 .TP
 \fI/usr/local/lib/fat/plugins/\fR
 System-wide directory for default plugins.
+
 .SH SEE ALSO
 .BR less (1),
 .BR vim (1),
@@ -81,3 +97,4 @@ System-wide directory for default plugins.
 
 .SH AUTHOR
 This program was written by Zuhaitz and the rest of contributors (check CONTRIBUTORS.md).
+```

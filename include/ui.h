@@ -54,7 +54,6 @@ void ui_handle_resize(AppState *state);
  *
  * This function creates a new window in the center of the screen, displays
  * the relevant keybindings for the current view mode, and waits for a key
-
  * press before closing.
  *
  * @param state A read-only pointer to the current application state, used to
@@ -73,6 +72,18 @@ void ui_show_help(const AppState* state);
  * term will be stored.
  */
 void ui_get_search_input(AppState *state);
+
+/**
+ * @brief Gets a shell command from the user via the status bar.
+ *
+ * This function takes control of the input loop to allow the user to type
+ * a command to execute with the current file as an argument.
+ *
+ * @param state A pointer to the application state, where the command will be stored.
+ * @param buffer A character buffer to store the user's command.
+ * @param buffer_size The size of the buffer.
+ */
+void ui_get_command_input(AppState *state, char* buffer, size_t buffer_size);
 
 /**
  * @brief Gets a line number from the user via the status bar.

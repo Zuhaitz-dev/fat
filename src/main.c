@@ -26,6 +26,7 @@
 
 
 // **Forward Declarations**
+static void print_help(const char* executable_name);
 static FatResult process_input(AppState *state, int ch);
 static FatResult find_next_search_match(AppState *state);
 static FatResult find_prev_search_match(AppState *state);
@@ -33,13 +34,54 @@ static void cleanup_temp_file_if_exists(const char* path);
 static bool check_terminal_size(void);
 
 /**
+ * @brief Prints the help message to the console and exits.
+ */
+static void print_help(const char* executable_name) {
+    printf("FAT (File & Archive Tool) %s\n", FAT_VERSION);
+    printf("A TUI file and archive viewer for your terminal.\n\n");
+    printf("USAGE:\n");
+    printf("  %s [OPTIONS] <FILE>\n\n", executable_name);
+    printf("OPTIONS:\n");
+    printf("  --force-text    Force the file to be opened in text mode.\n");
+    printf("  --force-hex     Force the file to be opened in hex mode.\n");
+    printf("  -h, --help      Show this help message and exit.\n");
+}
+
+
+/**
  * @brief The main entry point of the application.
  */
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
+    ForceViewMode force_mode = FORCE_VIEW_NONE;
+    char* filepath = NULL;
+
+    // --- Argument Parsing Logic ---
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--force-text") == 0) {
+            force_mode = FORCE_VIEW_TEXT;
+        } else if (strcmp(argv[i], "--force-hex") == 0) {
+            force_mode = FORCE_VIEW_HEX;
+        } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+            print_help(argv[0]);
+            return 0;
+        } else if (argv[i][0] == '-') {
+            fprintf(stderr, "Unknown option: %s\n", argv[i]);
+            print_help(argv[0]);
+            return 1;
+        } else {
+            if (filepath != NULL) {
+                fprintf(stderr, "Error: Multiple files specified. Only one file can be opened at a time.\n");
+                return 1;
+            }
+            filepath = argv[i];
+        }
+    }
+
+    if (filepath == NULL) {
+        fprintf(stderr, "Usage: %s [OPTIONS] <FILE>\n", argv[0]);
         return 1;
     }
+    // --- End of Argument Logic ---
 
     char config_dir[PATH_MAX];
     char log_path[PATH_MAX];
@@ -62,6 +104,7 @@ int main(int argc, char *argv[]) {
     }
 
     AppState state = {0};
+    state.force_view_mode = force_mode; // Pass the forced mode to the state
 
     int height, width;
     getmaxyx(stdscr, height, width);
@@ -78,7 +121,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    FatResult res = state_init(&state, argv[1]);
+    FatResult res = state_init(&state, filepath);
     if (res != FAT_SUCCESS) {
         ui_destroy();
         LOG_INFO("FATAL: Initial state setup failed with code %d.", res);
@@ -87,8 +130,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // To avoid possible warnings that break the UI.
-    // To see the warnings, you can simply comment these two lines.
     clear();
     refresh();
     ui_draw(&state);
@@ -173,7 +214,7 @@ static void cleanup_temp_file_if_exists(const char* path) {
     GetTempPathA(MAX_PATH, temp_dir);
     snprintf(temp_file_prefix, sizeof(temp_file_prefix), "%s\\fat-", temp_dir);
 #else
-    snprintf(temp_file_prefix, sizeof(temp_file_prefix), "/tmp/fat-"); // <-- REMOVED EXTRA ARG
+    snprintf(temp_file_prefix, sizeof(temp_file_prefix), "/tmp/fat-");
 #endif
 
     if (strncmp(path, temp_file_prefix, strlen(temp_file_prefix)) == 0) {
@@ -207,7 +248,6 @@ static FatResult process_input(AppState *state, int ch) {
         ui_show_help(state);
         return FAT_SUCCESS;
     }
-    // Update 'o' key to go to a line, and add 'G' for end and 'gg' for beginning.
     if (ch == 'o') {
         int target_line = ui_get_line_input(state);
         if (target_line > 0) {
@@ -220,41 +260,76 @@ static FatResult process_input(AppState *state, int ch) {
     }
 
     if (ch == 'g') {
-        int next_ch = getch(); // Read next key
-        if (next_ch == 'g') { // 'gg'
+        int next_ch = getch();
+        if (next_ch == 'g') {
             state->top_line = 0;
             state->left_char = 0;
             return FAT_SUCCESS;
         }
         return FAT_SUCCESS;
     }
-    // New 'G' keybinding to go to the end
     if (ch == 'G') {
         state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
         state->left_char = 0;
         return FAT_SUCCESS;
     }
+    
+    if (ch == 'O') {
+        char command_buffer[512];
+        ui_get_command_input(state, command_buffer, sizeof(command_buffer));
+        if (command_buffer[0] != '\0') {
+            def_prog_mode();
+            endwin();
+            
+            char full_command[1024];
+            snprintf(full_command, sizeof(full_command), "%s \"%s\"", command_buffer, state->filepath);
+            (void)system(full_command); // Execute the command
+            
+            reset_prog_mode();
+            refresh();
+
+            // *** FIX: Reload content after external command finishes ***
+            if (state->view_mode != VIEW_MODE_ARCHIVE) {
+                state_reload_content(state, state->view_mode);
+            }
+        }
+        return FAT_SUCCESS;
+    }
+
 
     switch (state->view_mode) {
         case VIEW_MODE_ARCHIVE:
-            switch (ch) {
+             switch (ch) {
                 case KEY_DOWN:
                 case 'j':
-                    if (state->top_line + 1 < (int)state->content.count) state->top_line++; break;
+                    if (state->top_line + 1 < (int)state->content.count) {
+                        state->top_line++;
+                    }
+                    break;
                 case KEY_UP:
                 case 'k':
-                    if (state->top_line > 0) state->top_line--; break;
+                    if (state->top_line > 0) {
+                        state->top_line--;
+                    }
+                    break;
                 case KEY_NPAGE:
                     state->top_line += page_size;
-                    if (state->top_line >= (int)state->content.count) state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
+                    if (state->top_line >= (int)state->content.count) {
+                        state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
+                    }
                     break;
                 case KEY_PPAGE:
                     state->top_line -= page_size;
-                    if (state->top_line < 0) state->top_line = 0;
+                    if (state->top_line < 0) {
+                        state->top_line = 0;
+                    }
                     break;
-                case KEY_HOME: state->top_line = 0; break;
-                case KEY_END: state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0; break;
-
+                case KEY_HOME:
+                    state->top_line = 0;
+                    break;
+                case KEY_END:
+                    state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
+                    break;
                 case '\n':
                 case KEY_ENTER: {
                     if (state->content.count == 0) break;
@@ -282,52 +357,6 @@ static FatResult process_input(AppState *state, int ch) {
             break;
 
         case VIEW_MODE_BINARY_HEX:
-            {
-                int visible_content_width = getmaxx(state->right_pane) - 7 - 1;
-                int max_scroll_limit = (int)state->max_line_len - visible_content_width;
-                if (max_scroll_limit < 0) max_scroll_limit = 0;
-
-                switch(ch) {
-                    case KEY_DOWN:
-                    case 'j': if (state->top_line + 1 < (int)state->content.count) state->top_line++; break;
-                    case KEY_UP:
-                    case 'k': if (state->top_line > 0) state->top_line--; break;
-                    case KEY_RIGHT:
-                    case 'l':
-                        if (state->left_char < max_scroll_limit) state->left_char++;
-                        break;
-                    case KEY_LEFT:
-                    case 'h':
-                        if (state->left_char > 0) state->left_char--;
-                        break;
-                    case KEY_NPAGE:
-                        state->top_line += page_size;
-                        if ((size_t)(state->top_line) >= state->content.count) {
-                             state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
-                        }
-                        break;
-                    case KEY_PPAGE:
-                        state->top_line -= page_size;
-                        if (state->top_line < 0) state->top_line = 0;
-                        break;
-                    case KEY_HOME: state->top_line = 0; state->left_char = 0; break;
-                    case KEY_END:
-                         state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
-                         state->left_char = 0;
-                         break;
-                    case 27:
-                        if (state->breadcrumbs.count > 1) {
-                            cleanup_temp_file_if_exists(state->breadcrumbs.lines[state->breadcrumbs.count - 1]);
-                            state->breadcrumbs.count--;
-                            return state_init(state, state->breadcrumbs.lines[state->breadcrumbs.count - 1]);
-                        }
-                        break;
-                    default:
-                         break;
-                }
-            }
-            break;
-
         case VIEW_MODE_NORMAL:
             {
                 int visible_content_width = getmaxx(state->right_pane) - 7 - 1;
@@ -335,10 +364,21 @@ static FatResult process_input(AppState *state, int ch) {
                 if (max_scroll_limit < 0) max_scroll_limit = 0;
 
                 switch(ch) {
+                    case 't':
+                        if (state->view_mode == VIEW_MODE_NORMAL) {
+                            return state_reload_content(state, VIEW_MODE_BINARY_HEX);
+                        } else if (state->view_mode == VIEW_MODE_BINARY_HEX) {
+                            return state_reload_content(state, VIEW_MODE_NORMAL);
+                        }
+                        break;
                     case KEY_DOWN:
-                    case 'j': if (state->top_line + 1 < (int)state->content.count) state->top_line++; break;
+                    case 'j':
+                        if (state->top_line + 1 < (int)state->content.count) state->top_line++;
+                        break;
                     case KEY_UP:
-                    case 'k': if (state->top_line > 0) state->top_line--; break;
+                    case 'k':
+                        if (state->top_line > 0) state->top_line--;
+                        break;
                     case KEY_RIGHT:
                     case 'l':
                         if (!state->line_wrap_enabled && state->left_char < max_scroll_limit) {
@@ -365,7 +405,10 @@ static FatResult process_input(AppState *state, int ch) {
                         state->top_line -= page_size;
                         if (state->top_line < 0) state->top_line = 0;
                         break;
-                    case KEY_HOME: state->top_line = 0; state->left_char = 0; break;
+                    case KEY_HOME:
+                        state->top_line = 0;
+                        state->left_char = 0;
+                        break;
                     case KEY_END:
                          state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
                          state->left_char = 0;
