@@ -30,7 +30,7 @@ endif
 # ==============================================================================
 # Directories
 # ==============================================================================
-SRC_DIR := src
+SRC_BASE_DIR := src
 OBJ_DIR := obj/$(BUILD_DIR_SUFFIX)
 BIN_DIR := bin
 PLUGIN_DIR := plugins
@@ -88,14 +88,18 @@ endif
 # ==============================================================================
 # Source Files
 # ==============================================================================
-SOURCES := $(filter-out $(SRC_DIR)/string_list.c, $(wildcard $(SRC_DIR)/*.c))
-OBJECTS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SOURCES))
+# Find all .c files in the new subdirectories
+SOURCES := $(wildcard $(SRC_BASE_DIR)/core/*.c $(SRC_BASE_DIR)/main/*.c $(SRC_BASE_DIR)/plugins/*.c $(SRC_BASE_DIR)/ui/*.c $(SRC_BASE_DIR)/utils/*.c)
+# Exclude files that will be part of the shared library
+APP_SOURCES := $(filter-out $(SRC_BASE_DIR)/utils/logger.c $(SRC_BASE_DIR)/core/string_list.c, $(SOURCES))
+OBJECTS := $(patsubst $(SRC_BASE_DIR)/%.c, $(OBJ_DIR)/%.o, $(APP_SOURCES))
 
 PLUGINS_SRC := tar zip
 PLUGINS_SO := $(foreach plugin,$(PLUGINS_SRC),$(PLUGIN_DIR)/$(plugin)_plugin$(SHARED_LIB_EXT))
 
 SHARED_LIB := $(LIB_DIR)/libfat_utils$(SHARED_LIB_EXT)
-SHARED_LIB_OBJ := $(OBJ_DIR)/logger.o $(OBJ_DIR)/string_list.o
+# Update paths for shared library object files
+SHARED_LIB_OBJ := $(OBJ_DIR)/utils/logger.o $(OBJ_DIR)/core/string_list.o
 
 # ==============================================================================
 # Installation Paths
@@ -115,6 +119,7 @@ INSTALL_MAN_DIR := $(DESTDIR)$(PREFIX)/share/man/man1
 all: release
 
 release: build_lib app plugins
+
 debug:
 	@$(MAKE) all DEBUG=1
 
@@ -126,20 +131,13 @@ $(SHARED_LIB): $(SHARED_LIB_OBJ)
 	@mkdir -p $(LIB_DIR)
 	$(CC) -shared $(SHARED_LIB_OBJ) -o $(SHARED_LIB)
 
-$(OBJ_DIR)/logger.o: $(SRC_DIR)/logger.c
-	@mkdir -p $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(OBJ_DIR)/string_list.o: $(SRC_DIR)/string_list.c
-	@mkdir -p $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
 $(TARGET)$(TARGET_EXT): $(OBJECTS) $(SHARED_LIB)
 	@mkdir -p $(BIN_DIR)
 	$(CC) $(OBJECTS) -o $@$(TARGET_EXT) $(LDFLAGS) -Wl,-rpath,'$$ORIGIN/../lib'
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(OBJ_DIR)
+# Generic rule to compile any .c file from its new location into the obj directory
+$(OBJ_DIR)/%.o: $(SRC_BASE_DIR)/%.c
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(PLUGIN_DIR)/tar_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/tar_plugin.c | $(SHARED_LIB)
