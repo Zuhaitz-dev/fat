@@ -94,11 +94,14 @@ FatResult state_init(AppState *state, const char *filepath) {
     state->line_wrap_enabled = false;
     state->top_line = 0;
     state->left_char = 0;
+
+    // Initialize search state
     state->search_term_active = false;
-    state->current_search_line_idx = -1;
-    state->current_search_char_idx = -1;
-    state->search_direction = 1;
-    state->search_wrapped = false;
+    state->search_results.matches = NULL;
+    state->search_results.count = 0;
+    state->search_results.capacity = 0;
+    state->search_results.current_match_idx = 0;
+
 
     state->theme = current_theme;
     if (state->theme == NULL && state->theme_paths.count > 0) {
@@ -295,6 +298,8 @@ void state_destroy_view(AppState *state) {
     state->search_term_active = false;
     free(state->filepath);
     state->filepath = NULL;
+    free(state->search_results.matches);
+    state->search_results.matches = NULL;
 }
 
 /**
@@ -335,4 +340,49 @@ void full_app_reset(AppState* state) {
     }
 
     StringList_free(&state->breadcrumbs);
+}
+
+/**
+ * @brief Performs a search for the current search term and populates the search_results list.
+ */
+FatResult state_perform_search(AppState *state) {
+    // Clear previous results
+    free(state->search_results.matches);
+    state->search_results.matches = NULL;
+    state->search_results.count = 0;
+    state->search_results.capacity = 0;
+    state->search_results.current_match_idx = 0;
+
+    if (!state->search_term_active || state->search_term[0] == '\0') {
+        return FAT_SUCCESS;
+    }
+
+    for (size_t i = 0; i < state->content.count; i++) {
+        const char* line = state->content.lines[i];
+        const char* ptr = line;
+        while ((ptr = strstr(ptr, state->search_term)) != NULL) {
+            if (state->search_results.count >= state->search_results.capacity) {
+                size_t new_capacity = (state->search_results.capacity == 0) ? 8 : state->search_results.capacity * 2;
+                SearchMatch* new_matches = realloc(state->search_results.matches, new_capacity * sizeof(SearchMatch));
+                if (!new_matches) {
+                    return FAT_ERROR_MEMORY;
+                }
+                state->search_results.matches = new_matches;
+                state->search_results.capacity = new_capacity;
+            }
+
+            state->search_results.matches[state->search_results.count].line_idx = i;
+            state->search_results.matches[state->search_results.count].char_idx = (size_t)(ptr - line);
+            state->search_results.count++;
+            ptr++; // Move past the beginning of the current match
+        }
+    }
+
+    if (state->search_results.count > 0) {
+        // Jump to the first match
+        state->top_line = (int)state->search_results.matches[0].line_idx;
+        return FAT_SUCCESS;
+    }
+
+    return FAT_ERROR_FILE_NOT_FOUND;
 }

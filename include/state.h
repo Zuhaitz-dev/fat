@@ -55,6 +55,26 @@ typedef enum {
 } ForceViewMode;
 
 /**
+ * @struct SearchMatch
+ * @brief Stores the location of a single search match.
+ */
+typedef struct {
+    size_t line_idx;    /**< The line number of the match. */
+    size_t char_idx;    /**< The byte offset of the match within the line. */
+} SearchMatch;
+
+/**
+ * @struct SearchMatchList
+ * @brief A dynamic array of SearchMatch structs.
+ */
+typedef struct {
+    SearchMatch* matches;       /**< The array of matches. */
+    size_t count;               /**< The number of matches found. */
+    size_t capacity;            /**< The allocated capacity of the array. */
+    size_t current_match_idx;   /**< The index of the currently active match. */
+} SearchMatchList;
+
+/**
  * @struct AppState
  * @brief The central data structure holding the entire application state.
  */
@@ -88,10 +108,7 @@ typedef struct {
     // --- Search State ---
     char search_term[256];              /**< The current search term entered by the user. */
     bool search_term_active;            /**< True if a search term is currently active. */
-    int current_search_line_idx;        /**< The line index of the currently highlighted search match. */
-    int current_search_char_idx;        /**< The character offset within the line of the current match. */
-    int search_direction;               /**< 1 for forward search, -1 for backward search. */
-    bool search_wrapped;                /**< True if search wrapped around the file. */
+    SearchMatchList search_results;     /**< A list of all found matches for the current term. */
 
 } AppState;
 
@@ -122,5 +139,12 @@ void state_destroy_view(AppState *state);
  * @param state The application state.
  */
 void full_app_reset(AppState* state);
+
+/**
+ * @brief Performs a search for the current search term and populates the search_results list.
+ * @param state A pointer to the application state.
+ * @return FAT_SUCCESS if matches are found, FAT_ERROR_FILE_NOT_FOUND if no matches are found.
+ */
+FatResult state_perform_search(AppState *state);
 
 #endif //STATE_H

@@ -339,6 +339,7 @@ void ui_get_search_input(AppState *state) {
     state->mode = MODE_NORMAL; // Revert to normal mode
     strncpy(state->search_term, temp_buffer, sizeof(state->search_term) - 1); // Copy input to app state
     state->search_term[sizeof(state->search_term) - 1] = '\0'; // Ensure null-termination
+    state->search_term_active = (state->search_term[0] != '\0');
 }
 
 /**
@@ -648,17 +649,10 @@ static void draw_statusbar(const AppState *state) {
     const char* label = (state->view_mode == VIEW_MODE_ARCHIVE) ? "Entry" : "Line";
 
     // Format search match and line/entry info
-    if (state->search_term_active && state->current_search_line_idx != -1) {
-        char wrapped_msg[10] = "";
-        if (state->search_wrapped) {
-            if (state->search_direction == 1) {
-                strcpy(wrapped_msg, " (wrapped)");
-            } else {
-                strcpy(wrapped_msg, " (wrapped)");
-            }
-        }
-        snprintf(right_status, sizeof(right_status), "Match found%s | %s %d/%zu",
-                 wrapped_msg, label, state->top_line + 1, state->content.count);
+    if (state->search_term_active && state->search_results.count > 0) {
+        snprintf(right_status, sizeof(right_status), "Match %zu/%zu | %s %d/%zu",
+                 state->search_results.current_match_idx + 1, state->search_results.count,
+                 label, state->top_line + 1, state->content.count);
     } else {
         snprintf(right_status, sizeof(right_status), "%s %d/%zu",
                  label, state->top_line + 1, state->content.count);
@@ -724,15 +718,6 @@ static void draw_content_pane(WINDOW* win, const AppState* state) {
         wattroff(win, COLOR_PAIR(COLOR_PAIR_LINE_NUM));
         if (is_active_line) wattroff(win, A_REVERSE); // Turn off reverse video for line number
 
-        // Determine if this line contains the currently active search match
-        bool is_current_highlighted_match_line = (state->search_term_active &&
-                                                    line_idx == state->current_search_line_idx);
-        
-        // Determine if this line has any search term (for general highlighting, if not current match)
-        bool line_has_any_search_match = (state->search_term_active &&
-                                          state->search_term[0] != '\0' &&
-                                          strstr(full_line, state->search_term) != NULL);
-
 
         if (state->line_wrap_enabled) {
             // --- Line Wrapping with Search Highlighting ---
@@ -786,19 +771,17 @@ static void draw_content_pane(WINDOW* win, const AppState* state) {
                 int chars_remaining_in_segment = chars_to_take;
                 int current_screen_col = line_num_width; // Start printing content after line number
 
-                if (state->search_term_active && state->search_term[0] != '\0') {
+                if (state->search_term_active && state->search_results.count > 0) {
                     const char* term = state->search_term;
                     size_t term_len_bytes = strlen(term);
-                    size_t term_len_chars = get_char_len_from_bytes(term, term_len_bytes);
+                    size_t term_len_chars = get_char_len_from_bytes(term, (int)term_len_bytes);
 
                     while (chars_remaining_in_segment > 0 && current_screen_col < width -1) {
                         const char* match_in_segment = strstr(print_segment_ptr, term);
-
-                        // Calculate the absolute character offset of the segment start within the logical line
-                        int abs_segment_start_char_offset = get_char_len_from_bytes(full_line, (int)(segment_start_ptr - full_line));
+                        size_t match_byte_offset = (match_in_segment) ? (size_t)(match_in_segment - full_line) : -1;
 
                         // Check if match is within the current logical segment being drawn AND if it's the current match
-                        if (match_in_segment != NULL && (match_in_segment - segment_start_ptr) < (current_ptr - segment_start_ptr)) {
+                        if (match_in_segment != NULL && match_in_segment < current_ptr) {
                             // Calculate pre-match characters
                             int pre_match_bytes = (int)(match_in_segment - print_segment_ptr);
                             int pre_match_chars = get_char_len_from_bytes(print_segment_ptr, pre_match_bytes);
@@ -817,23 +800,21 @@ static void draw_content_pane(WINDOW* win, const AppState* state) {
                             if (current_screen_col >= width - 1) break; // Filled screen width
 
                             // Print the match itself
-                            int abs_match_start_char_offset = get_char_len_from_bytes(full_line, (int)(match_in_segment - full_line));
-                            bool highlight_this_match = is_current_highlighted_match_line &&
-                                                        abs_match_start_char_offset == state->current_search_char_idx;
+                            bool is_current_match = (state->search_results.matches[state->search_results.current_match_idx].line_idx == (size_t)line_idx &&
+                                                     state->search_results.matches[state->search_results.current_match_idx].char_idx == match_byte_offset);
 
-                            int match_chars_to_print = term_len_chars;
+                            int match_chars_to_print = (int)term_len_chars;
                             if (current_screen_col + match_chars_to_print > width - 1) { // Check against window width
                                 match_chars_to_print = (width - 1) - current_screen_col;
                             }
                             if (match_chars_to_print > 0) {
-                                print_segment(win, y, current_screen_col, match_in_segment, match_chars_to_print, is_active_line, true, highlight_this_match);
+                                print_segment(win, y, current_screen_col, match_in_segment, match_chars_to_print, is_active_line, true, is_current_match);
                                 current_screen_col += match_chars_to_print;
                             }
 
                             // Advance print_segment_ptr past the match (in bytes)
                             print_segment_ptr = match_in_segment + term_len_bytes;
                             chars_remaining_in_segment -= (pre_match_chars + (int)term_len_chars);
-                            if (chars_remaining_in_segment < 0) chars_remaining_in_segment = 0; // Should not go negative
 
                         } else {
                             // No more matches in this remaining segment, print the rest
@@ -844,7 +825,6 @@ static void draw_content_pane(WINDOW* win, const AppState* state) {
                             if (chars_to_print_now > 0) {
                                 print_segment(win, y, current_screen_col, print_segment_ptr, chars_to_print_now, is_active_line, false, false);
                             }
-                            chars_remaining_in_segment = 0; // All printed
                             break; // Exit inner loop
                         }
                     }
@@ -868,30 +848,20 @@ static void draw_content_pane(WINDOW* win, const AppState* state) {
             // --- No Line Wrapping (Original Logic with Horizontal Scroll Fix) ---
             int effective_left_char = state->left_char;
 
-            // If this is the active highlighted line AND it's the current search match,
-            // adjust effective_left_char to keep the match visible.
-            if (is_current_highlighted_match_line && state->search_term[0] != '\0') {
-                // We now directly use state->current_search_char_idx for the exact match position
-                const char* term = state->search_term;
-                const char* first_match_ptr_on_line = full_line + state->current_search_char_idx;
+            // If this line contains the active match, ensure it is visible
+            if (state->search_term_active && state->search_results.count > 0) {
+                SearchMatch* current_match = &state->search_results.matches[state->search_results.current_match_idx];
+                if (current_match->line_idx == (size_t)line_idx) {
+                    int match_char_pos = get_char_len_from_bytes(full_line, (int)current_match->char_idx);
+                    int term_char_len = get_char_len_from_bytes(state->search_term, (int)strlen(state->search_term));
 
-                if (first_match_ptr_on_line) {
-                    int match_start_byte_offset = (int)(first_match_ptr_on_line - full_line);
-                    int match_start_char_pos = get_char_len_from_bytes(full_line, match_start_byte_offset);
-                    
-                    size_t term_len_bytes = strlen(term);
-                    int term_char_len = get_char_len_from_bytes(term, term_len_bytes);
-                    
-                    int match_end_char_pos = match_start_char_pos + term_char_len;
-
-                    // Adjust effective_left_char to ensure the match is visible
-                    if (match_start_char_pos < effective_left_char) {
-                        effective_left_char = match_start_char_pos;
+                    if (match_char_pos < effective_left_char) {
+                        effective_left_char = match_char_pos;
                     }
-                    if (match_end_char_pos > effective_left_char + content_width) {
-                        effective_left_char = match_end_char_pos - content_width;
+                    if (match_char_pos + term_char_len > effective_left_char + content_width) {
+                        effective_left_char = match_char_pos + term_char_len - content_width;
                     }
-                    if (effective_left_char < 0) effective_left_char = 0; // Clamp to 0
+                    if (effective_left_char < 0) effective_left_char = 0;
                 }
             }
 
@@ -906,69 +876,38 @@ static void draw_content_pane(WINDOW* win, const AppState* state) {
                 current_char_pos_in_line++;
             }
 
-            if (state->search_term_active && state->search_term[0] != '\0') {
-                const char* term = state->search_term;
-                size_t term_len_bytes = strlen(term);
-                size_t term_len_chars = get_char_len_from_bytes(term, term_len_bytes);
+            // Print line with highlighting
+            const char* term = state->search_term;
+            size_t term_len_bytes = (state->search_term_active) ? strlen(term) : 0;
+            size_t term_len_chars = (state->search_term_active) ? get_char_len_from_bytes(term, (int)term_len_bytes) : 0;
 
-                while (*current_print_ptr != '\0' && screen_x < content_width) {
-                    const char* match = strstr(current_print_ptr, term);
+            while (*current_print_ptr != '\0' && screen_x < content_width) {
+                const char* match = (state->search_term_active && term_len_bytes > 0) ? strstr(current_print_ptr, term) : NULL;
+                size_t match_byte_offset = (match) ? (size_t)(match - full_line) : -1;
 
-                    // Check if this match is the currently active one
-                    bool is_this_the_current_match = (line_idx == state->current_search_line_idx &&
-                                                       (match - full_line) == state->current_search_char_idx);
-                    if (match != NULL && (is_this_the_current_match || !is_current_highlighted_match_line)) {
-                        // Print text before the match
-                        int pre_match_bytes = (int)(match - current_print_ptr);
-                        int pre_match_chars = get_char_len_from_bytes(current_print_ptr, pre_match_bytes);
-                        
-                        if (pre_match_chars > 0) {
-                            int chars_to_print_now = pre_match_chars;
-                            if (screen_x + chars_to_print_now > content_width) {
-                                chars_to_print_now = content_width - screen_x;
-                            }
-                            if (chars_to_print_now > 0) {
-                                print_segment(win, y, line_num_width + screen_x, current_print_ptr, chars_to_print_now, is_active_line, false, false);
-                                screen_x += chars_to_print_now;
-                            }
-                        }
-                        
-                        if (screen_x >= content_width) break; // Filled screen width
-
-                        // Print the match itself
-                        int match_chars_to_print = term_len_chars;
-                        if (screen_x + match_chars_to_print > content_width) {
-                            match_chars_to_print = content_width - screen_x; 
-                        }
-                        if (match_chars_to_print > 0) {
-                            print_segment(win, y, line_num_width + screen_x, match, match_chars_to_print, is_active_line, true, is_this_the_current_match);
-                            screen_x += match_chars_to_print;
-                        }
-
-                        // Advance current_print_ptr past the match (in bytes)
-                        current_print_ptr = match + term_len_bytes;
-                    } else {
-                        // No more matches in this visible segment, print the rest
-                        int remaining_chars = 0;
-                        const char* temp = current_print_ptr;
-                        while (*temp != '\0' && (screen_x + remaining_chars) < content_width) {
-                            remaining_chars++;
-                            temp += utf8_char_len(temp);
-                        }
-                        if (remaining_chars > 0) {
-                            print_segment(win, y, line_num_width + screen_x, current_print_ptr, remaining_chars, is_active_line, false, false);
-                        }
-                        screen_x += remaining_chars; // Mark as printed
-                        break; // Exit outer loop
+                if (match) {
+                    // Print text before the match
+                    int pre_match_bytes = (int)(match - current_print_ptr);
+                    int pre_match_chars = get_char_len_from_bytes(current_print_ptr, pre_match_bytes);
+                    if (pre_match_chars > 0) {
+                        print_segment(win, y, line_num_width + screen_x, current_print_ptr, pre_match_chars, is_active_line, false, false);
+                        screen_x += pre_match_chars;
                     }
-                }
-            } else {
-                // No search or no match, just print with horizontal offset
-                while (*current_print_ptr != '\0' && screen_x < content_width) {
-                    int char_len = utf8_char_len(current_print_ptr);
-                    print_segment(win, y, line_num_width + screen_x, current_print_ptr, 1, is_active_line, false, false); // Print char by char
-                    current_print_ptr += char_len;
-                    screen_x++;
+
+                    // Check if this is the currently selected match
+                    bool is_current_match = (state->search_results.count > 0 &&
+                                             state->search_results.matches[state->search_results.current_match_idx].line_idx == (size_t)line_idx &&
+                                             state->search_results.matches[state->search_results.current_match_idx].char_idx == match_byte_offset);
+
+                    print_segment(win, y, line_num_width + screen_x, match, (int)term_len_chars, is_active_line, true, is_current_match);
+                    screen_x += (int)term_len_chars;
+                    current_print_ptr = match + term_len_bytes;
+                } else {
+                    // No more matches on this line, print the rest
+                    int bytes_to_advance = 0;
+                    int chars_to_print = get_display_chars_and_bytes(current_print_ptr, content_width - screen_x, &bytes_to_advance);
+                    print_segment(win, y, line_num_width + screen_x, current_print_ptr, chars_to_print, is_active_line, false, false);
+                    break; // End of line
                 }
             }
 

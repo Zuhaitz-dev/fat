@@ -28,8 +28,6 @@
 // **Forward Declarations**
 static void print_help(const char* executable_name);
 static FatResult process_input(AppState *state, int ch);
-static FatResult find_next_search_match(AppState *state);
-static FatResult find_prev_search_match(AppState *state);
 static void cleanup_temp_file_if_exists(const char* path);
 static bool check_terminal_size(void);
 
@@ -415,46 +413,41 @@ static FatResult process_input(AppState *state, int ch) {
                          break;
 
                     case '/':
-                        state->search_term_active = false;
-                        ui_get_search_input(state);
-                        state->search_term_active = (state->search_term[0] != '\0');
-                        state->search_direction = 1;
-                        state->search_wrapped = false;
-                        state->current_search_line_idx = state->top_line;
-                        state->current_search_char_idx = state->left_char;
-                        res = find_next_search_match(state);
-                        break;
-                    case 'n':
+                        ui_get_search_input(state); // This function now handles everything
                         if (state->search_term_active) {
-                            state->search_direction = 1;
-                            res = find_next_search_match(state);
-                        } else {
-                            res = FAT_ERROR_UNSUPPORTED;
+                           res = state_perform_search(state);
+                           if (res == FAT_ERROR_FILE_NOT_FOUND) {
+                               ui_show_message(state, "No matches found.");
+                               state->search_term_active = false;
+                               res = FAT_SUCCESS;
+                           }
                         }
-                        if (res == FAT_ERROR_FILE_NOT_FOUND && state->search_wrapped) {
-                            ui_show_message(state, "No more matches found (wrapped around).");
-                            res = FAT_SUCCESS;
-                        } else if (res == FAT_ERROR_FILE_NOT_FOUND) {
-                            ui_show_message(state, "No matches found.");
-                            res = FAT_SUCCESS;
-                        }
+                        break;
 
-                        break;
-                    case 'N':
-                        if (state->search_term_active) {
-                            state->search_direction = -1;
-                            res = find_prev_search_match(state);
+                    case 'n':
+                        if (state->search_term_active && state->search_results.count > 0) {
+                            state->search_results.current_match_idx = (state->search_results.current_match_idx + 1) % state->search_results.count;
+                            SearchMatch* match = &state->search_results.matches[state->search_results.current_match_idx];
+                            state->top_line = (int)match->line_idx;
                         } else {
-                            res = FAT_ERROR_UNSUPPORTED;
-                        }
-                        if (res == FAT_ERROR_FILE_NOT_FOUND && state->search_wrapped) {
-                            ui_show_message(state, "No more matches found (wrapped around).");
-                            res = FAT_SUCCESS;
-                        } else if (res == FAT_ERROR_FILE_NOT_FOUND) {
-                            ui_show_message(state, "No matches found.");
-                            res = FAT_SUCCESS;
+                            res = FAT_ERROR_UNSUPPORTED; // No active search
                         }
                         break;
+
+                    case 'N':
+                        if (state->search_term_active && state->search_results.count > 0) {
+                            if (state->search_results.current_match_idx == 0) {
+                                state->search_results.current_match_idx = state->search_results.count - 1;
+                            } else {
+                                state->search_results.current_match_idx--;
+                            }
+                            SearchMatch* match = &state->search_results.matches[state->search_results.current_match_idx];
+                            state->top_line = (int)match->line_idx;
+                        } else {
+                            res = FAT_ERROR_UNSUPPORTED; // No active search
+                        }
+                        break;
+
                     case 'w':
                         if (state->view_mode == VIEW_MODE_NORMAL) {
                             state->line_wrap_enabled = !state->line_wrap_enabled;
@@ -468,9 +461,10 @@ static FatResult process_input(AppState *state, int ch) {
                         } else if (state->search_term_active) {
                             state->search_term[0] = '\0';
                             state->search_term_active = false;
-                            state->current_search_line_idx = -1;
-                            state->current_search_char_idx = -1;
-                            state->search_wrapped = false;
+                            free(state->search_results.matches);
+                            state->search_results.matches = NULL;
+                            state->search_results.count = 0;
+                            state->search_results.capacity = 0;
                             return FAT_SUCCESS;
                         }
                         break;
@@ -479,91 +473,4 @@ static FatResult process_input(AppState *state, int ch) {
             break;
     }
     return FAT_SUCCESS;
-}
-
-/**
- * @brief Finds the next occurrence of the search term in the content.
- */
-static FatResult find_next_search_match(AppState *state) {
-    if (!state->search_term_active || state->search_term[0] == '\0') return FAT_ERROR_UNSUPPORTED;
-
-    int start_line = state->current_search_line_idx;
-    int start_char = state->current_search_char_idx + (state->current_search_char_idx != -1 ? (int)strlen(state->search_term) : 0);
-
-    size_t content_count = state->content.count;
-
-    for (int i = start_line; i < (int)content_count; ++i) {
-        const char* line = state->content.lines[i];
-        const char* search_start_ptr = (i == start_line && start_char != -1) ? line + start_char : line;
-
-        if (search_start_ptr > line + strlen(line)) {
-            search_start_ptr = line;
-        }
-
-        const char* match = strstr(search_start_ptr, state->search_term);
-        if (match) {
-            state->current_search_line_idx = i;
-            state->current_search_char_idx = (int)(match - line);
-            state->top_line = i;
-            state->search_wrapped = false;
-            return FAT_SUCCESS;
-        }
-        start_char = 0;
-    }
-
-    if (!state->search_wrapped) {
-        state->search_wrapped = true;
-        state->current_search_line_idx = 0;
-        state->current_search_char_idx = -1;
-        LOG_INFO("Search wrapped to beginning.");
-        return find_next_search_match(state);
-    }
-
-    return FAT_ERROR_FILE_NOT_FOUND;
-}
-
-/**
- * @brief Finds the previous occurrence of the search term in the content.
- */
-static FatResult find_prev_search_match(AppState *state) {
-    if (!state->search_term_active || state->search_term[0] == '\0') return FAT_ERROR_UNSUPPORTED;
-
-    int start_line = state->current_search_line_idx;
-    int start_char = state->current_search_char_idx;
-
-    if (start_line == -1 || start_char == -1) {
-        start_line = (int)state->content.count - 1;
-        start_char = (int)strlen(state->content.lines[start_line]);
-    }
-
-    for (int i = start_line; i >= 0; --i) {
-        const char* line = state->content.lines[i];
-        int current_len = (int)strlen(line);
-        int search_end_char = (i == start_line) ? start_char : current_len;
-
-        if (search_end_char > current_len) search_end_char = current_len;
-
-        for (int j = search_end_char - 1; j >= 0; --j) {
-            if (j + strlen(state->search_term) <= (size_t)current_len &&
-                strncmp(line + j, state->search_term, strlen(state->search_term)) == 0) {
-
-                state->current_search_line_idx = i;
-                state->current_search_char_idx = j;
-                state->top_line = i;
-                state->search_wrapped = false;
-                return FAT_SUCCESS;
-            }
-        }
-        start_char = -1;
-    }
-
-    if (!state->search_wrapped) {
-        state->search_wrapped = true;
-        state->current_search_line_idx = (int)state->content.count - 1;
-        state->current_search_char_idx = (int)strlen(state->content.lines[state->current_search_line_idx]);
-        LOG_INFO("Search wrapped to end.");
-        return find_prev_search_match(state);
-    }
-
-    return FAT_ERROR_FILE_NOT_FOUND;
 }
