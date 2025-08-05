@@ -3,9 +3,9 @@
  * @author Zuhaitz (original)
  * @brief Implements the logic for loading, applying, and discovering UI themes.
  */
-#include "theme.h"
-#include "logger.h"
-#include "cJSON.h"
+#include "ui/theme.h"
+#include "utils/logger.h"
+#include "utils/cJSON.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -185,7 +185,6 @@ FatResult theme_discover(const char* themes_dir_path, StringList* list) {
     while ((dir = readdir(d)) != NULL) {
         const char* dot = strrchr(dir->d_name, '.');
         if (dot && strcmp(dot, ".json") == 0) {
-            // --- NEW: Check for duplicates before adding ---
             if (!list_contains_theme(list, dir->d_name)) {
                 char full_path[PATH_MAX];
                 snprintf(full_path, sizeof(full_path), "%s/%s", themes_dir_path, dir->d_name);

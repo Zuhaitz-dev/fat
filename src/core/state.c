@@ -3,13 +3,13 @@
  * @author Zuhaitz (original)
  * @brief Implements the core state management logic for the application.
  */
-#include "state.h"
-#include "file.h"
-#include "plugin_manager.h"
-#include "hex_viewer_api.h"
-#include "logger.h"
-#include "config.h"
-#include "utils.h"
+#include "core/state.h"
+#include "core/file.h"
+#include "plugins/plugin_manager.h"
+#include "plugins/hex_viewer_api.h"
+#include "utils/logger.h"
+#include "core/config.h"
+#include "utils/utils.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -159,7 +159,6 @@ FatResult state_init(AppState *state, const char *filepath) {
     res = get_file_info(filepath, &state->metadata);
     if (res != FAT_SUCCESS) goto cleanup;
 
-    // --- VIEW MODE PRIORITY LOGIC ---
     if (state->force_view_mode == FORCE_VIEW_TEXT) {
         state->view_mode = VIEW_MODE_NORMAL;
         res = read_file_content(filepath, &state->content);
@@ -215,7 +214,6 @@ FatResult state_init(AppState *state, const char *filepath) {
             }
         }
     }
-    // --- END PRIORITY LOGIC ---
 
     if (res != FAT_SUCCESS) goto cleanup;
 

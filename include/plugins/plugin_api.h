@@ -11,8 +11,8 @@
 #ifndef PLUGIN_API_H
 #define PLUGIN_API_H
 
-#include "string_list.h"
-#include "error.h"
+#include "core/string_list.h"
+#include "core/error.h"
 #include <stdbool.h>
 
 /**

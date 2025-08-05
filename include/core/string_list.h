@@ -12,7 +12,7 @@
 #define STRING_LIST_H
 
 #include <stdlib.h> // For size_t
-#include "error.h"  // For FatResult
+#include "core/error.h"  // For FatResult
 
 /**
  * @struct StringList

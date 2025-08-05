@@ -3,10 +3,10 @@
  * @author Zuhaitz (original)
  * @brief Implements the loading and management of user configuration settings.
  */
-#include "config.h"
-#include "state.h"
-#include "logger.h"
-#include "utils.h"
+#include "core/config.h"
+#include "core/state.h"
+#include "utils/logger.h"
+#include "utils/utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,7 +50,9 @@ int get_config_dir(char* buffer, size_t size) {
 #endif
 }
 
-// Helper to copy a single file
+/**
+ * @brief Helper to copy a single file
+ */
 static void copy_file(const char* src, const char* dest) {
     FILE* src_file = fopen(src, "rb");
     if (!src_file) return;
@@ -70,7 +72,9 @@ static void copy_file(const char* src, const char* dest) {
     fclose(dest_file);
 }
 
-// Copies default themes from the system path to the user's config path
+/**
+ * @brief Copies default themes from the system path to the user's config path.
+ */
 static void copy_default_themes(const char* user_themes_dir) {
     char system_themes_dir[PATH_MAX];
     snprintf(system_themes_dir, sizeof(system_themes_dir), "%s/share/fat/themes", INSTALL_PREFIX);

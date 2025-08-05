@@ -6,7 +6,7 @@
  * This file contains the logic for initializing, writing to, and closing the
  * application's log file.
  */
-#include "logger.h"
+#include "utils/logger.h"
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>

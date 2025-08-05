@@ -10,7 +10,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include "state.h"
+#include "core/state.h"
 #include <stddef.h>
 
 /**

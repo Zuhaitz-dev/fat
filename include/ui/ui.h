@@ -10,7 +10,7 @@
 #ifndef UI_H
 #define UI_H
 
-#include "state.h"
+#include "core/state.h"
 
 /**
  * @brief Initializes the ncurses screen and sets up initial terminal modes.

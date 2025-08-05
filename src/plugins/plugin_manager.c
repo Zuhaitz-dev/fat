@@ -7,8 +7,8 @@
  * to dynamically load shared objects at runtime, look up symbols, and build a
  * list of available archive handlers.
  */
-#include "plugin_manager.h"
-#include "logger.h"
+#include "plugins/plugin_manager.h"
+#include "utils/logger.h"
 #include <stdio.h>
 #include <dirent.h>
 #include <string.h>

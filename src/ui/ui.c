@@ -7,10 +7,10 @@
  * It takes the data from the AppState struct and translates it into what the
  * user sees on the screen.
  */
-#include "ui.h"
-#include "theme.h"
-#include "error.h"
-#include "utf8_utils.h"
+#include "ui/ui.h"
+#include "ui/theme.h"
+#include "core/error.h"
+#include "utils/utf8_utils.h"
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -128,13 +128,13 @@ static int get_char_len_from_bytes(const char* text, int max_bytes) {
  */
 void ui_init() {
     setenv("ESCDELAY", "25", 1); // Set a shorter ESC delay for faster key recognition
-    initscr();                  // Initialize the screen
-    cbreak();                   // Line buffering disabled, pass everything to program
-    noecho();                   // Don't echo input characters
-    curs_set(0);                // Hide the cursor
-    keypad(stdscr, TRUE);       // Enable function keys (e.g., arrow keys, F1-F12)
-    start_color();              // Enable color support
-    refresh();                  // Refresh the screen to apply initial settings
+    initscr();                   // Initialize the screen
+    cbreak();                    // Line buffering disabled, pass everything to program
+    noecho();                    // Don't echo input characters
+    curs_set(0);                 // Hide the cursor
+    keypad(stdscr, TRUE);        // Enable function keys (e.g., arrow keys, F1-F12)
+    start_color();               // Enable color support
+    refresh();                   // Refresh the screen to apply initial settings
 }
 
 /**
@@ -403,8 +403,8 @@ int ui_get_line_input(AppState *state) {
     wattroff(bar, A_BOLD);
     wrefresh(bar); // Refresh to show prompt
 
-    curs_set(1); // Show cursor
-    keypad(bar, TRUE); // Enable keypad for status bar
+    curs_set(1);        // Show cursor
+    keypad(bar, TRUE);  // Enable keypad for status bar
     int ch;
     while (1) {
         mvwprintw(bar, 0, 15, "%-s", temp_buffer); // Display current buffer
@@ -424,7 +424,7 @@ int ui_get_line_input(AppState *state) {
             temp_buffer[pos] = '\0';
         }
     }
-    curs_set(0); // Hide cursor
+    curs_set(0);        // Hide cursor
     keypad(bar, FALSE); // Disable keypad
 
     if (strlen(temp_buffer) > 0) {
@@ -720,7 +720,7 @@ static void draw_content_pane(WINDOW* win, const AppState* state) {
 
 
         if (state->line_wrap_enabled) {
-            // --- Line Wrapping with Search Highlighting ---
+            // **Line Wrapping with Search Highlighting**
             const char* current_ptr = full_line; // Pointer to the current position in the logical line
             
             do {
@@ -845,7 +845,7 @@ static void draw_content_pane(WINDOW* win, const AppState* state) {
             } while (*current_ptr != '\0'); // Continue wrapping until the end of the full_line
             line_idx++; // Move to the next logical line
         } else {
-            // --- No Line Wrapping (Original Logic with Horizontal Scroll Fix) ---
+            // **No Line Wrapping**
             int effective_left_char = state->left_char;
 
             // If this line contains the active match, ensure it is visible

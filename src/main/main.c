@@ -3,13 +3,13 @@
  * @author Zuhaitz (original)
  * @brief The main entry point and event loop for the FAT TUI application.
  */
-#include "state.h"
-#include "ui.h"
-#include "plugin_manager.h"
-#include "logger.h"
-#include "error.h"
-#include "utf8_utils.h"
-#include "config.h"
+#include "core/state.h"
+#include "ui/ui.h"
+#include "plugins/plugin_manager.h"
+#include "utils/logger.h"
+#include "core/error.h"
+#include "utils/utf8_utils.h"
+#include "core/config.h"
 #include <locale.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
     ForceViewMode force_mode = FORCE_VIEW_NONE;
     char* filepath = NULL;
 
-    // --- Argument Parsing Logic ---
+        // **Argument Parsing Logic**
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--force-text") == 0) {
             force_mode = FORCE_VIEW_TEXT;
@@ -79,7 +79,6 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Usage: %s [OPTIONS] <FILE>\n", argv[0]);
         return 1;
     }
-    // --- End of Argument Logic ---
 
     char config_dir[PATH_MAX];
     char log_path[PATH_MAX];
@@ -286,7 +285,6 @@ static FatResult process_input(AppState *state, int ch) {
             reset_prog_mode();
             refresh();
 
-            // *** FIX: Reload content after external command finishes ***
             if (state->view_mode != VIEW_MODE_ARCHIVE) {
                 state_reload_content(state, state->view_mode);
             }

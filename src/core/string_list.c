@@ -6,8 +6,8 @@
  * This file contains the logic for initializing, adding to, and freeing a
  * StringList, including its dynamic resizing behavior.
  */
-#include "string_list.h"
-#include "logger.h"
+#include "core/string_list.h"
+#include "utils/logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -6,8 +6,8 @@
  * This file contains the logic for reading a file byte-by-byte and
  * formatting it into a standard hex dump view.
  */
-#include "hex_viewer_api.h"
-#include "logger.h"
+#include "plugins/hex_viewer_api.h"
+#include "utils/logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -3,8 +3,8 @@
  * @author Zuhaitz (original)
  * @brief A dynamic plugin for handling ZIP archives using libzip.
  */
-#include "../include/plugin_api.h"
-#include "../include/logger.h"
+#include "../include/plugins/plugin_api.h"
+#include "../include/utils/logger.h"
 #include <zip.h>
 #include <stdbool.h>
 #include <string.h>

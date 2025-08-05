@@ -9,7 +9,7 @@
 #ifndef PLUGIN_MANAGER_H
 #define PLUGIN_MANAGER_H
 
-#include "plugin_api.h"
+#include "plugins/plugin_api.h"
 
 /**
  * @brief Loads all plugins from the specified directory.

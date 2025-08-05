@@ -3,8 +3,8 @@
  * @author Zuhaitz (original)
  * @brief A dynamic plugin for handling TAR archives using libtar.
  */
-#include "../include/plugin_api.h"
-#include "../include/logger.h"
+#include "../include/plugins/plugin_api.h"
+#include "../include/utils/logger.h"
 #include <libtar.h>
 #include <stdbool.h>
 #include <string.h>

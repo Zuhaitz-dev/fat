@@ -10,8 +10,8 @@
 #ifndef HEX_VIEWER_API_H
 #define HEX_VIEWER_API_H
 
-#include "string_list.h"
-#include "error.h"
+#include "core/string_list.h"
+#include "core/error.h"
 
 /**
  * @brief Generates a hex dump of a given file's content.

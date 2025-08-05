@@ -11,8 +11,8 @@
 #define THEME_H
 
 #include <ncurses.h>
-#include "string_list.h"
-#include "error.h"
+#include "core/string_list.h"
+#include "core/error.h"
 
 /**
  * @enum ThemeElement

@@ -10,8 +10,8 @@
 #include <limits.h>
 #include <stdbool.h>
 #include "string_list.h"
-#include "theme.h"
-#include "error.h"
+#include "ui/theme.h"
+#include "core/error.h"
 
 /**
  * @struct AppConfig

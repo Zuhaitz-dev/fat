@@ -10,8 +10,8 @@
 #ifndef FILE_H
 #define FILE_H
 
-#include "string_list.h"
-#include "error.h"
+#include "core/string_list.h"
+#include "core/error.h"
 
 /**
  * @brief Gets file metadata (name, size, type, etc.) using stat and libmagic.

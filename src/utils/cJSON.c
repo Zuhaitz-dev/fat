@@ -56,7 +56,12 @@
 #pragma GCC visibility pop
 #endif
 
-#include "cJSON.h"
+// Only actual modification of the original file
+// Required for current project structure.
+// Well, are you actually gonna read this at all?
+// ...
+// Kilroy was here
+#include "utils/cJSON.h"
 
 /* define our own boolean type */
 #ifdef true

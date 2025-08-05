@@ -7,8 +7,8 @@
  * file details and read text content, using standard C libraries, POSIX
  * functions (stat), and libmagic for MIME type detection.
  */
-#include "file.h"
-#include "logger.h"
+#include "core/file.h"
+#include "utils/logger.h"
 #include <sys/stat.h>
 #include <magic.h>
 #include <time.h>

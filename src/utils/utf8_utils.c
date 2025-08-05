@@ -3,7 +3,7 @@
  * @author Zuhaitz (original)
  * @brief Implements utility functions for handling UTF-8 encoded strings.
  */
-#include "utf8_utils.h"
+#include "utils/utf8_utils.h"
 
 /**
  * @brief Calculates the byte length of a UTF-8 character.

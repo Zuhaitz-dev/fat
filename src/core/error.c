@@ -6,7 +6,7 @@
  * This provides the logic for the fat_result_to_string function, which is essential
  * for displaying meaningful error messages to the user.
  */
-#include "error.h"
+#include "core/error.h"
 
 /**
  * @brief Converts a FatResult enum to a user-friendly, human-readable string.
