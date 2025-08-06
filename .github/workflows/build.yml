@@ -51,11 +51,12 @@ jobs:
 
       - name: Create Linux amd64 distributable package
         run: |
-          mkdir -p package/bin package/lib/fat/plugins package/share/fat/themes
+          mkdir -p package/bin package/lib/fat/plugins package/share/fat/themes package/share/fat/defaults
           cp bin/fat-release package/bin/fat
           cp lib/libfat_utils.so package/lib/
           cp plugins/*.so package/lib/fat/plugins/
           cp themes/*.json package/share/fat/themes/
+          cp defaults/*.json package/share/fat/defaults/
           cd package
           tar -czvf ../fat-linux-x86_64.tar.gz .
           cd ..
@@ -118,11 +119,12 @@ jobs:
 
       - name: Create Linux arm64 distributable package
         run: |
-          mkdir -p package/bin package/lib/fat/plugins package/share/fat/themes
+          mkdir -p package/bin package/lib/fat/plugins package/share/fat/themes package/share/fat/defaults
           cp bin/fat-release package/bin/fat
           cp lib/libfat_utils.so package/lib/
           cp plugins/*.so package/lib/fat/plugins/
           cp themes/*.json package/share/fat/themes/
+          cp defaults/*.json package/share/fat/defaults/
           cd package
           tar -czvf ../fat-linux-arm64.tar.gz .
           cd ..
@@ -167,10 +169,12 @@ jobs:
           mkdir -p dist/package/bin
           mkdir -p dist/package/lib/fat/plugins
           mkdir -p dist/package/share/fat/themes
+          mkdir -p dist/package/share/fat/defaults
 
           # 2. Copy the main executable, themes, and plugins
           cp bin/fat-release dist/package/bin/fat
           cp themes/*.json dist/package/share/fat/themes/
+          cp defaults/*.json dist/package/share/fat/defaults/
           cp plugins/*.dylib dist/package/lib/fat/plugins/
           cp lib/libfat_utils.dylib dist/package/lib/
 
