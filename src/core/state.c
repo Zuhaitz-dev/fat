@@ -58,8 +58,14 @@ FatResult state_init(AppState *state, const char *filepath) {
             theme_discover(system_themes_dir, &state->theme_paths);
         }
 
-        if (dir_exists("themes")) { // Dev fallback
-             theme_discover("themes", &state->theme_paths);
+        // Dev fallback using executable path
+        char exe_dir[PATH_MAX];
+        if (get_executable_dir(exe_dir, sizeof(exe_dir)) == 0) {
+            char dev_themes_dir[PATH_MAX];
+            snprintf(dev_themes_dir, sizeof(dev_themes_dir), "%s/../../themes", exe_dir);
+            if (dir_exists(dev_themes_dir)) {
+                theme_discover(dev_themes_dir, &state->theme_paths);
+            }
         }
 
         // **Load Plugins (User, System, and Dev)**
@@ -75,8 +81,12 @@ FatResult state_init(AppState *state, const char *filepath) {
         snprintf(system_plugins_dir, sizeof(system_plugins_dir), "%s/lib/fat/plugins", INSTALL_PREFIX);
         if (dir_exists(system_plugins_dir)) {
              pm_load_plugins(system_plugins_dir);
-        } else if (dir_exists("plugins")) { // Dev fallback
-             pm_load_plugins("plugins");
+        } else if (get_executable_dir(exe_dir, sizeof(exe_dir)) == 0) { // Dev fallback
+            char dev_plugins_dir[PATH_MAX];
+            snprintf(dev_plugins_dir, sizeof(dev_plugins_dir), "%s/../../plugins", exe_dir);
+            if (dir_exists(dev_plugins_dir)) {
+                pm_load_plugins(dev_plugins_dir);
+            }
         }
     }
 

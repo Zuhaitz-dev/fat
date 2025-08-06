@@ -132,7 +132,13 @@ int main(int argc, char *argv[]) {
     ui_draw(&state);
 
     int ch;
-    while ((ch = getch()) != 'q') {
+    while (true) {
+        ch = getch();
+        
+        if (state.config.key_map[ch] == ACTION_QUIT) {
+            break;
+        }
+
         if (!check_terminal_size()) {
             break;
         }
@@ -228,7 +234,9 @@ static FatResult process_input(AppState *state, int ch) {
     if (page_size < 1) page_size = 1;
     FatResult res = FAT_SUCCESS;
 
-    if (ch == KEY_F(2)) {
+    Action action = (ch >= 0 && ch < MAX_KEY_CODE) ? state->config.key_map[ch] : ACTION_NONE;
+
+    if (action == ACTION_SELECT_THEME) {
         int selected_idx = ui_show_theme_selector(state);
         if (selected_idx != -1) {
             const char* new_theme_path = state->theme_paths.lines[selected_idx];
@@ -241,11 +249,11 @@ static FatResult process_input(AppState *state, int ch) {
         }
         return res;
     }
-    if (ch == '?') {
+    if (action == ACTION_TOGGLE_HELP) {
         ui_show_help(state);
         return FAT_SUCCESS;
     }
-    if (ch == 'o') {
+    if (action == ACTION_JUMP_TO_LINE) {
         int target_line = ui_get_line_input(state);
         if (target_line > 0) {
             state->top_line = target_line - 1;
@@ -256,22 +264,18 @@ static FatResult process_input(AppState *state, int ch) {
         return FAT_SUCCESS;
     }
 
-    if (ch == 'g') {
-        int next_ch = getch();
-        if (next_ch == 'g') {
-            state->top_line = 0;
-            state->left_char = 0;
-            return FAT_SUCCESS;
-        }
+    if (action == ACTION_JUMP_TO_START) {
+        state->top_line = 0;
+        state->left_char = 0;
         return FAT_SUCCESS;
     }
-    if (ch == 'G') {
+    if (action == ACTION_JUMP_TO_END) {
         state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
         state->left_char = 0;
         return FAT_SUCCESS;
     }
     
-    if (ch == 'O') {
+    if (action == ACTION_OPEN_EXTERNAL) {
         char command_buffer[512];
         ui_get_command_input(state, command_buffer, sizeof(command_buffer));
         if (command_buffer[0] != '\0') {
@@ -295,39 +299,30 @@ static FatResult process_input(AppState *state, int ch) {
 
     switch (state->view_mode) {
         case VIEW_MODE_ARCHIVE:
-             switch (ch) {
-                case KEY_DOWN:
-                case 'j':
+            switch (action) {
+                case ACTION_SCROLL_DOWN:
                     if (state->top_line + 1 < (int)state->content.count) {
                         state->top_line++;
                     }
                     break;
-                case KEY_UP:
-                case 'k':
+                case ACTION_SCROLL_UP:
                     if (state->top_line > 0) {
                         state->top_line--;
                     }
                     break;
-                case KEY_NPAGE:
+                case ACTION_PAGE_DOWN:
                     state->top_line += page_size;
                     if (state->top_line >= (int)state->content.count) {
                         state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
                     }
                     break;
-                case KEY_PPAGE:
+                case ACTION_PAGE_UP:
                     state->top_line -= page_size;
                     if (state->top_line < 0) {
                         state->top_line = 0;
                     }
                     break;
-                case KEY_HOME:
-                    state->top_line = 0;
-                    break;
-                case KEY_END:
-                    state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
-                    break;
-                case '\n':
-                case KEY_ENTER: {
+                case ACTION_CONFIRM: {
                     if (state->content.count == 0) break;
                     state->search_term_active = false;
                     const char* entry_name = state->content.lines[state->top_line];
@@ -342,12 +337,14 @@ static FatResult process_input(AppState *state, int ch) {
                     }
                     return res;
                 }
-                case 27:
+                case ACTION_GO_BACK:
                     if (state->breadcrumbs.count > 1) {
                         cleanup_temp_file_if_exists(state->breadcrumbs.lines[state->breadcrumbs.count - 1]);
                         state->breadcrumbs.count--;
                         return state_init(state, state->breadcrumbs.lines[state->breadcrumbs.count - 1]);
                     }
+                    break;
+                default:
                     break;
             }
             break;
@@ -359,24 +356,21 @@ static FatResult process_input(AppState *state, int ch) {
                 int max_scroll_limit = (int)state->max_line_len - visible_content_width;
                 if (max_scroll_limit < 0) max_scroll_limit = 0;
 
-                switch(ch) {
-                    case 't':
+                switch(action) {
+                    case ACTION_TOGGLE_VIEW_MODE:
                         if (state->view_mode == VIEW_MODE_NORMAL) {
                             return state_reload_content(state, VIEW_MODE_BINARY_HEX);
                         } else if (state->view_mode == VIEW_MODE_BINARY_HEX) {
                             return state_reload_content(state, VIEW_MODE_NORMAL);
                         }
                         break;
-                    case KEY_DOWN:
-                    case 'j':
+                    case ACTION_SCROLL_DOWN:
                         if (state->top_line + 1 < (int)state->content.count) state->top_line++;
                         break;
-                    case KEY_UP:
-                    case 'k':
+                    case ACTION_SCROLL_UP:
                         if (state->top_line > 0) state->top_line--;
                         break;
-                    case KEY_RIGHT:
-                    case 'l':
+                    case ACTION_SCROLL_RIGHT:
                         if (!state->line_wrap_enabled && state->left_char < max_scroll_limit) {
                             const char *line = state->content.lines[state->top_line];
                             if (state->left_char < (int)strlen(line)) {
@@ -384,33 +378,24 @@ static FatResult process_input(AppState *state, int ch) {
                             }
                         }
                         break;
-                    case KEY_LEFT:
-                    case 'h':
+                    case ACTION_SCROLL_LEFT:
                         if (!state->line_wrap_enabled && state->left_char > 0) {
                             const char *line = state->content.lines[state->top_line];
                             state->left_char = utf8_prev_char_start(line, state->left_char);
                         }
                         break;
-                    case KEY_NPAGE:
+                    case ACTION_PAGE_DOWN:
                         state->top_line += page_size;
                         if ((size_t)(state->top_line) >= state->content.count) {
                              state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
                         }
                         break;
-                    case KEY_PPAGE:
+                    case ACTION_PAGE_UP:
                         state->top_line -= page_size;
                         if (state->top_line < 0) state->top_line = 0;
                         break;
-                    case KEY_HOME:
-                        state->top_line = 0;
-                        state->left_char = 0;
-                        break;
-                    case KEY_END:
-                         state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
-                         state->left_char = 0;
-                         break;
-
-                    case '/':
+                    
+                    case ACTION_SEARCH:
                         ui_get_search_input(state); // This function now handles everything
                         if (state->search_term_active) {
                            res = state_perform_search(state);
@@ -422,7 +407,7 @@ static FatResult process_input(AppState *state, int ch) {
                         }
                         break;
 
-                    case 'n':
+                    case ACTION_NEXT_MATCH:
                         if (state->search_term_active && state->search_results.count > 0) {
                             state->search_results.current_match_idx = (state->search_results.current_match_idx + 1) % state->search_results.count;
                             SearchMatch* match = &state->search_results.matches[state->search_results.current_match_idx];
@@ -432,7 +417,7 @@ static FatResult process_input(AppState *state, int ch) {
                         }
                         break;
 
-                    case 'N':
+                    case ACTION_PREV_MATCH:
                         if (state->search_term_active && state->search_results.count > 0) {
                             if (state->search_results.current_match_idx == 0) {
                                 state->search_results.current_match_idx = state->search_results.count - 1;
@@ -446,12 +431,12 @@ static FatResult process_input(AppState *state, int ch) {
                         }
                         break;
 
-                    case 'w':
+                    case ACTION_TOGGLE_WRAP:
                         if (state->view_mode == VIEW_MODE_NORMAL) {
                             state->line_wrap_enabled = !state->line_wrap_enabled;
                         }
                         break;
-                    case 27:
+                    case ACTION_GO_BACK:
                         if (state->breadcrumbs.count > 1) {
                             cleanup_temp_file_if_exists(state->breadcrumbs.lines[state->breadcrumbs.count - 1]);
                             state->breadcrumbs.count--;
@@ -465,6 +450,8 @@ static FatResult process_input(AppState *state, int ch) {
                             state->search_results.capacity = 0;
                             return FAT_SUCCESS;
                         }
+                        break;
+                    default:
                         break;
                 }
             }

@@ -7,6 +7,7 @@
 #include "core/state.h"
 #include "utils/logger.h"
 #include "utils/utils.h"
+#include "utils/cJSON.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +27,10 @@
 #include <pwd.h>
 #endif
 
+
+// **Forward Declarations**
+static void config_load_keybindings(AppState* state);
+static void config_free_keybindings(AppConfig* config);
 
 /**
  * @brief Gets the full, OS-specific path to the configuration directory.
@@ -71,6 +76,27 @@ static void copy_file(const char* src, const char* dest) {
     fclose(src_file);
     fclose(dest_file);
 }
+
+/**
+ * @brief Copies default configuration files from the system path to the user's config path.
+ */
+static void copy_default_configs(const char* user_config_dir) {
+    char system_defaults_dir[PATH_MAX];
+    snprintf(system_defaults_dir, sizeof(system_defaults_dir), "%s/share/fat/defaults", INSTALL_PREFIX);
+
+    if (!dir_exists(system_defaults_dir)) {
+        LOG_INFO("System defaults directory not found at '%s', cannot copy defaults.", system_defaults_dir);
+        return;
+    }
+
+    // Copy keybindings.json
+    char src_path[PATH_MAX];
+    char dest_path[PATH_MAX];
+    snprintf(src_path, sizeof(src_path), "%s/keybindings.json", system_defaults_dir);
+    snprintf(dest_path, sizeof(dest_path), "%s/keybindings.json", user_config_dir);
+    copy_file(src_path, dest_path);
+}
+
 
 /**
  * @brief Copies default themes from the system path to the user's config path.
@@ -207,6 +233,8 @@ void config_load(AppState* state) {
     StringList_init(&state->config.text_mimes);
     StringList_init(&state->config.binary_mimes);
 
+    config_load_keybindings(state); // Load keybindings
+
     char config_dir[PATH_MAX];
     if (get_config_dir(config_dir, sizeof(config_dir)) != 0) {
         LOG_INFO("Could not determine configuration directory path.");
@@ -241,7 +269,7 @@ void config_load(AppState* state) {
 
             fclose(create_file);
 
-            // Copy themes on first run
+            // Copy themes and configs on first run
             char user_themes_dir[PATH_MAX];
             snprintf(user_themes_dir, sizeof(user_themes_dir), "%s/themes", config_dir);
             copy_default_themes(user_themes_dir);
@@ -249,6 +277,8 @@ void config_load(AppState* state) {
             char user_plugins_dir[PATH_MAX];
             snprintf(user_plugins_dir, sizeof(user_plugins_dir), "%s/plugins", config_dir);
             copy_default_plugins(user_plugins_dir);
+
+            copy_default_configs(config_dir);
         }
         return;
     }
@@ -297,4 +327,213 @@ void config_free(AppState* state) {
     state->config.default_theme_name = NULL;
     StringList_free(&state->config.text_mimes);
     StringList_free(&state->config.binary_mimes);
+    config_free_keybindings(&state->config);
+}
+
+
+// ==============================================================================
+// Keybinding Configuration
+// ==============================================================================
+
+/**
+ * @brief Helper to map a key name string to an ncurses integer code.
+ */
+static int key_string_to_ncurses(const char* key_str) {
+    if (!key_str) return -1;
+    if (strcmp(key_str, "KEY_DOWN") == 0) return KEY_DOWN;
+    if (strcmp(key_str, "KEY_UP") == 0) return KEY_UP;
+    if (strcmp(key_str, "KEY_LEFT") == 0) return KEY_LEFT;
+    if (strcmp(key_str, "KEY_RIGHT") == 0) return KEY_RIGHT;
+    if (strcmp(key_str, "KEY_NPAGE") == 0) return KEY_NPAGE;
+    if (strcmp(key_str, "KEY_PPAGE") == 0) return KEY_PPAGE;
+    if (strcmp(key_str, "KEY_HOME") == 0) return KEY_HOME;
+    if (strcmp(key_str, "KEY_END") == 0) return KEY_END;
+    if (strcmp(key_str, "KEY_ENTER") == 0) return KEY_ENTER;
+    if (strcmp(key_str, "KEY_BACKSPACE") == 0) return KEY_BACKSPACE;
+    if (strcmp(key_str, "KEY_ESC") == 0) return 27; // ncurses doesn't have a KEY_ESC
+    if (strncmp(key_str, "KEY_F(", 6) == 0) {
+        int f_num = atoi(key_str + 6);
+        if (f_num > 0 && f_num <= 64) return KEY_F(f_num);
+    }
+    if (strlen(key_str) == 1) return (int)key_str[0];
+    if (strcmp(key_str, "\n") == 0) return '\n';
+
+    return -1; // Not a recognized key
+}
+
+/**
+ * @brief Helper to map an action name string to an Action enum.
+ */
+static Action action_name_to_enum(const char* name) {
+    if (strcmp(name, "quit") == 0) return ACTION_QUIT;
+    if (strcmp(name, "scroll_up") == 0) return ACTION_SCROLL_UP;
+    if (strcmp(name, "scroll_down") == 0) return ACTION_SCROLL_DOWN;
+    if (strcmp(name, "scroll_left") == 0) return ACTION_SCROLL_LEFT;
+    if (strcmp(name, "scroll_right") == 0) return ACTION_SCROLL_RIGHT;
+    if (strcmp(name, "page_up") == 0) return ACTION_PAGE_UP;
+    if (strcmp(name, "page_down") == 0) return ACTION_PAGE_DOWN;
+    if (strcmp(name, "jump_to_start") == 0) return ACTION_JUMP_TO_START;
+    if (strcmp(name, "jump_to_end") == 0) return ACTION_JUMP_TO_END;
+    if (strcmp(name, "jump_to_line") == 0) return ACTION_JUMP_TO_LINE;
+    if (strcmp(name, "toggle_wrap") == 0) return ACTION_TOGGLE_WRAP;
+    if (strcmp(name, "search") == 0) return ACTION_SEARCH;
+    if (strcmp(name, "next_match") == 0) return ACTION_NEXT_MATCH;
+    if (strcmp(name, "prev_match") == 0) return ACTION_PREV_MATCH;
+    if (strcmp(name, "toggle_view_mode") == 0) return ACTION_TOGGLE_VIEW_MODE;
+    if (strcmp(name, "open_external") == 0) return ACTION_OPEN_EXTERNAL;
+    if (strcmp(name, "go_back") == 0) return ACTION_GO_BACK;
+    if (strcmp(name, "select_theme") == 0) return ACTION_SELECT_THEME;
+    if (strcmp(name, "toggle_help") == 0) return ACTION_TOGGLE_HELP;
+    if (strcmp(name, "confirm") == 0) return ACTION_CONFIRM;
+    return ACTION_NONE;
+}
+
+/**
+ * @brief Frees all memory associated with the keybindings.
+ */
+static void config_free_keybindings(AppConfig* config) {
+    for (int i = 0; i < ACTION_COUNT; i++) {
+        free(config->keybindings[i].name);
+        free(config->keybindings[i].description);
+        StringList_free(&config->keybindings[i].keys);
+    }
+}
+
+/**
+ * @brief Populates the key_map for fast lookup.
+ */
+static void populate_key_map(AppConfig* config) {
+    // Initialize map
+    for (int i = 0; i < MAX_KEY_CODE; i++) {
+        config->key_map[i] = ACTION_NONE;
+    }
+
+    // Populate with loaded keybindings
+    for (int i = 0; i < ACTION_COUNT; i++) {
+        Keybinding* kb = &config->keybindings[i];
+        for (size_t j = 0; j < kb->keys.count; j++) {
+            int key_code = key_string_to_ncurses(kb->keys.lines[j]);
+            if (key_code >= 0 && key_code < MAX_KEY_CODE) {
+                config->key_map[key_code] = kb->action;
+            }
+        }
+    }
+}
+
+/**
+ * @brief Parses a keybindings.json file and updates the AppConfig.
+ */
+static void parse_keybindings_json(const char* filepath, AppConfig* config) {
+    FILE* f = fopen(filepath, "rb");
+    if (!f) {
+        LOG_INFO("Failed to open keybindings file at path: %s", filepath);
+        return;
+    }
+
+    fseek(f, 0, SEEK_END);
+    long length = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char* buffer = malloc(length + 1);
+    if (!buffer) {
+        fclose(f);
+        return;
+    }
+    if (fread(buffer, 1, length, f) != (size_t)length) {
+        // Handle read error if necessary
+    }
+    fclose(f);
+    buffer[length] = '\0';
+
+    cJSON* json = cJSON_Parse(buffer);
+    free(buffer);
+    if (!json) {
+        LOG_INFO("Failed to parse keybindings file: %s", filepath);
+        return;
+    }
+
+    cJSON* actions = cJSON_GetObjectItemCaseSensitive(json, "actions");
+    cJSON* action_obj;
+    cJSON_ArrayForEach(action_obj, actions) {
+        cJSON* name_json = cJSON_GetObjectItemCaseSensitive(action_obj, "name");
+        if (!cJSON_IsString(name_json)) continue;
+
+        Action action = action_name_to_enum(name_json->valuestring);
+        if (action == ACTION_NONE) continue;
+
+        Keybinding* kb = &config->keybindings[action];
+        
+        // Free old data before overriding
+        free(kb->name);
+        free(kb->description);
+        StringList_free(&kb->keys);
+
+        kb->action = action;
+        kb->name = strdup(name_json->valuestring);
+        
+        cJSON* desc_json = cJSON_GetObjectItemCaseSensitive(action_obj, "description");
+        if (cJSON_IsString(desc_json)) {
+            kb->description = strdup(desc_json->valuestring);
+        }
+
+        cJSON* keys_array = cJSON_GetObjectItemCaseSensitive(action_obj, "keys");
+        cJSON* key_str_json;
+        cJSON_ArrayForEach(key_str_json, keys_array) {
+            if (cJSON_IsString(key_str_json)) {
+                StringList_add(&kb->keys, key_str_json->valuestring);
+            }
+        }
+    }
+
+    cJSON_Delete(json);
+    LOG_INFO("Loaded keybindings from %s", filepath);
+}
+
+/**
+ * @brief Initializes and loads keybindings from default and user files.
+ */
+static void config_load_keybindings(AppState* state) {
+    // 1 - Initialize the keybinding array
+    for (int i = 0; i < ACTION_COUNT; i++) {
+        state->config.keybindings[i].action = (Action)i;
+        state->config.keybindings[i].name = NULL;
+        state->config.keybindings[i].description = NULL;
+        StringList_init(&state->config.keybindings[i].keys);
+    }
+    
+    // 2 - Parse default, system, and user keybinding files. Each subsequent
+    //    file will override settings from the previous one.
+    char keybinding_path[PATH_MAX];
+    
+    // Dev path (lowest priority), relative to the executable
+    char exe_dir[PATH_MAX];
+    if (get_executable_dir(exe_dir, sizeof(exe_dir)) == 0) {
+        char dev_defaults_dir[PATH_MAX];
+
+        // Check for the defaults dir in two common locations
+        snprintf(dev_defaults_dir, sizeof(dev_defaults_dir), "%s/../../defaults", exe_dir);
+        if (!dir_exists(dev_defaults_dir)) {
+            // If not found, try another common location (e.g., if running from root)
+            snprintf(dev_defaults_dir, sizeof(dev_defaults_dir), "%s/../defaults", exe_dir);
+        }
+
+        if (dir_exists(dev_defaults_dir)) {
+            snprintf(keybinding_path, sizeof(keybinding_path), "%s/keybindings.json", dev_defaults_dir);
+            LOG_INFO("Attempting to load dev keybindings from: %s", keybinding_path);
+            parse_keybindings_json(keybinding_path, &state->config);
+        }
+    }
+
+    // System path
+    snprintf(keybinding_path, sizeof(keybinding_path), "%s/share/fat/defaults/keybindings.json", INSTALL_PREFIX);
+    parse_keybindings_json(keybinding_path, &state->config);
+
+    // User path (highest priority)
+    char config_dir[PATH_MAX];
+    if (get_config_dir(config_dir, sizeof(config_dir)) == 0) {
+        snprintf(keybinding_path, sizeof(keybinding_path), "%s/keybindings.json", config_dir);
+        parse_keybindings_json(keybinding_path, &state->config);
+    }
+    
+    // 3 - Populate the fast lookup map
+    populate_key_map(&state->config);
 }

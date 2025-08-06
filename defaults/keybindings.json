@@ -1,0 +1,104 @@
+{
+  "actions": [
+    {
+      "name": "quit",
+      "description": "Quit the application",
+      "keys": ["q"]
+    },
+    {
+      "name": "scroll_down",
+      "description": "Scroll line by line",
+      "keys": ["j", "KEY_DOWN"]
+    },
+    {
+      "name": "scroll_up",
+      "description": "Scroll line by line",
+      "keys": ["k", "KEY_UP"]
+    },
+    {
+      "name": "scroll_left",
+      "description": "Scroll horizontally",
+      "keys": ["h", "KEY_LEFT"]
+    },
+    {
+      "name": "scroll_right",
+      "description": "Scroll horizontally",
+      "keys": ["l", "KEY_RIGHT"]
+    },
+    {
+      "name": "page_down",
+      "description": "Scroll page by page",
+      "keys": ["KEY_NPAGE"]
+    },
+    {
+      "name": "page_up",
+      "description": "Scroll page by page",
+      "keys": ["KEY_PPAGE"]
+    },
+    {
+      "name": "jump_to_start",
+      "description": "Jump to beginning of content",
+      "keys": ["g"]
+    },
+    {
+      "name": "jump_to_end",
+      "description": "Jump to end of content",
+      "keys": ["G"]
+    },
+    {
+      "name": "jump_to_line",
+      "description": "Go to line",
+      "keys": ["o"]
+    },
+    {
+      "name": "toggle_wrap",
+      "description": "Toggle line wrapping (Text mode)",
+      "keys": ["w"]
+    },
+    {
+      "name": "search",
+      "description": "Search for text/hex",
+      "keys": ["/"]
+    },
+    {
+      "name": "next_match",
+      "description": "Next/prev search match",
+      "keys": ["n"]
+    },
+    {
+      "name": "prev_match",
+      "description": "Next/prev search match",
+      "keys": ["N"]
+    },
+    {
+      "name": "toggle_view_mode",
+      "description": "Toggle Text/Hex View",
+      "keys": ["t"]
+    },
+    {
+      "name": "open_external",
+      "description": "Open with external command",
+      "keys": ["O"]
+    },
+    {
+      "name": "go_back",
+      "description": "Go back (from archive)",
+      "keys": ["KEY_BACKSPACE", "KEY_ESC"]
+    },
+    {
+      "name": "select_theme",
+      "description": "Change theme",
+      "keys": ["KEY_F(2)"]
+    },
+    {
+      "name": "toggle_help",
+      "description": "Show this help screen",
+      "keys": ["?"]
+    },
+    {
+        "name": "confirm",
+        "description": "Confirm action",
+        "keys": ["KEY_ENTER", "\n"]
+    }
+  ]
+}

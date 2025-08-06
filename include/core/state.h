@@ -13,6 +13,50 @@
 #include "ui/theme.h"
 #include "core/error.h"
 
+#define MAX_KEY_CODE 512 // For our keymap array
+
+/**
+ * @enum Action
+ * @brief Defines all possible actions the user can perform.
+ */
+typedef enum {
+    ACTION_NONE,
+    ACTION_QUIT,
+    ACTION_SCROLL_UP,
+    ACTION_SCROLL_DOWN,
+    ACTION_SCROLL_LEFT,
+    ACTION_SCROLL_RIGHT,
+    ACTION_PAGE_UP,
+    ACTION_PAGE_DOWN,
+    ACTION_JUMP_TO_START,
+    ACTION_JUMP_TO_END,
+    ACTION_JUMP_TO_LINE,
+    ACTION_TOGGLE_WRAP,
+    ACTION_SEARCH,
+    ACTION_NEXT_MATCH,
+    ACTION_PREV_MATCH,
+    ACTION_TOGGLE_VIEW_MODE,
+    ACTION_OPEN_EXTERNAL,
+    ACTION_GO_BACK,
+    ACTION_SELECT_THEME,
+    ACTION_TOGGLE_HELP,
+    ACTION_CONFIRM,
+    ACTION_COUNT
+} Action;
+
+
+/**
+ * @struct Keybinding
+ * @brief Represents a single action and its associated keys and description.
+ */
+typedef struct {
+    Action action;
+    char* name;
+    char* description;
+    StringList keys;
+} Keybinding;
+
+
 /**
  * @struct AppConfig
  * @brief Holds settings loaded from the user's configuration file.
@@ -21,6 +65,8 @@ typedef struct {
     char* default_theme_name;   /**< The name of the theme to load by default. */
     StringList text_mimes;      /**< List of MIME types to always treat as text. */
     StringList binary_mimes;    /**< List of MIME types to always treat as binary. */
+    Keybinding keybindings[ACTION_COUNT]; /**< Holds all loaded keybindings. */
+    Action key_map[MAX_KEY_CODE];       /**< Fast lookup map from keycode to Action. */
 } AppConfig;
 
 
