@@ -24,23 +24,21 @@ jobs:
     needs: clean-dist
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:22.04
+      image: debian:11
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Linux dependencies
+      - name: Install Linux dependencies (including Snapcraft)
         run: |
+          # Commands run as root in the container, so sudo is not needed
           apt-get update
           apt-get install -y --no-install-recommends \
             git wget file build-essential gcc make \
             libmagic-dev libncursesw5-dev libzip-dev libtar-dev fuse tar \
             snapd
-
-      - name: Install Snapcraft
-        run: |
-          # Use sudo for snap install
-          sudo snap install --classic snapcraft
+          # Install snapcraft directly without sudo
+          snap install --classic snapcraft
 
       - name: Build for Linux amd64
         run: |
@@ -49,7 +47,7 @@ jobs:
 
       - name: Build Snap package
         run: |
-          # Add /snap/bin to the PATH and run snapcraft
+          # Add /snap/bin to the PATH and run snapcraft without sudo
           export PATH="/snap/bin:$PATH"
           snapcraft
 
