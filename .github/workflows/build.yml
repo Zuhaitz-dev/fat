@@ -31,12 +31,13 @@ jobs:
 
       - name: Install Linux dependencies (including Snapcraft)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          # Commands run as root in the container, so sudo is not needed
+          apt-get update
+          apt-get install -y --no-install-recommends \
             git wget file build-essential gcc make \
             libmagic-dev libncursesw5-dev libzip-dev libtar-dev fuse tar \
             snapd
-          sudo snap install --classic snapcraft
+          snap install --classic snapcraft
 
       - name: Build for Linux amd64
         run: |
@@ -45,7 +46,8 @@ jobs:
 
       - name: Build Snap package
         run: |
-          sudo snapcraft
+          # snapcraft is run directly without sudo
+          snapcraft
 
       - name: Create Linux amd64 distributable package
         run: |
@@ -208,7 +210,7 @@ jobs:
     needs: build-linux-amd64
     runs-on: ubuntu-latest
     container:
-      image: debian:11 
+      image: debian:11
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
