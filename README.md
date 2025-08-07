@@ -35,30 +35,51 @@
 
 ---
 
-## Installation (AppImage - Recommended for Linux)
+## Installation
 
-The easiest way to get started is by downloading the latest Binaries or AppImage.
+### Snap Store
 
-#### 1. Download the Binary or AppImage
-  Go to the project's [Releases Page](https://github.com/Zuhaitz-dev/fat/releases/) on GitHub and download the file for your system and arch.
+The easiest way to install FAT is from the Snap Store.
 
-#### 2. Make it Executable
+> Some of the code is still being refactored to make the best out of this mode (Opening external commands is still under improvement)
+
+```bash
+sudo snap install zuhaitz-fat --beta
+```
+
+<a href="https://snapcraft.io/zuhaitz-fat">
+<img alt="Get it from the Snap Store" src="https://snapcraft.io/static/images/badges/en/snap-store-black.svg" width="150">
+</a>
+
+### AppImage (for other Linux distributions)
+
+#### 1. Download the Distributable Package
+  Go to the project's [Releases Page](https://github.com/Zuhaitz-dev/fat/releases/) on GitHub and download the file for your system. This contains the AppImage and the default configuration files.
+
+#### 2. Unzip the `.dist`
+
+```bash
+unzip <.dist you have downloaded>
+```
+
+#### 3. Extract the Package
+
+```bash
+tar -xzvf <the .tar.gz>
+```
+
+#### 4. Make the AppImage Executable
   You only need to do this once.
 
 ```bash
-chmod +x <file you downloaded>
+chmod +x <AppImage you downloaded>
 ```
 
-#### 3. Run it!
-  You can now run the application directly
+#### 5. Run it!
+You can now run the application directly:
 
-for binary
 ```bash
 ./fat-x86_64 /path/to/your/file
-```
-or for Appimage
-```bash
-./fat-x86_64.AppImage /path/to/your/file
 ```
 
 > **Desktop Integration**: For the best experience, we recommend installing [AppImageLauncher](https://github.com/TheAssassin/AppImageLauncher/releases). It will automatically add FAT to your application menu.
@@ -108,13 +129,16 @@ pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-ncurses mingw-w64-x86_64-f
 Once you have the prerequisites, you can build and install FAT with these simple commands:
 
 ```bash
-# 2. Build the application and plugins
+# - Build the application and plugins
 make
 
-# 3. Install the application system-wide
+# - Install the application system-wide
 sudo make install
 
-# 4. (Linux only) Update the shared library cache
+# - If you want to make the AppImage
+make appimage
+
+# - (Linux only) Update the shared library cache
 sudo ldconfig
 ```
 
@@ -136,20 +160,27 @@ fat my_document.txt
 fat project.zip
 ```
 
-### Some keybindings
+### Some Default Keybindings
 
-| Key           | Actions                                   | 
-| ------------- | ----------------------------------------- |
-| `Up` / `Down` | Navigate through files or scroll content  |
-| `Enter`       | View a file within an archive             |
-| `Esc`         | Go back to the parent archive/directory   |
-| `q`           | Quit the application                      |
-| `F2`          | Open the theme selector menu              |
-| `/`           | Search for text (or hex in binary view)   |
-| `n` / `N`     | Go to the next/previous search result     |
-| `?`           | Show the in-app help screen               |
-
-#### Also supports Vim-like keybindings - j / k, h / l, gg / G
+| Key                             | Actions                               | 
+| ------------------------------- | ------------------------------------- |
+| `q`                             | Quit the application                  |
+| `j`/`k`, `KEY_DOWN`/`KEY_UP`    | Scroll line by line                   |
+| `h`/`l`, `KEY_LEFT`/`KEY_RIGHT`	| Scroll horizontally                   |
+| `KEY_NPAGE`/`KEY_PPAGE`    	    | Scroll page by page                   |
+| `g`	                            | Jump to beginning of content          |
+| `G`	                            | Jump to end of content                |
+| `o`	                            | Go to line                            |
+| `w`	                            | Toggle line wrapping (Text mode)      |
+| `/`	                            | Search for text/hex                   |
+| `n`	                            | Next search match                     |
+| `N`	                            | Previous search match                 |
+| `t`	                            | Toggle Text/Hex View                  |
+| `O`	                            | Open with external command            |
+| `KEY_BACKSPACE`, `KEY_ESC`	    | Go back (from archive)                |
+| `KEY_F(2)`	                    | Change theme                          |
+| `?`	                            | Show this help screen                 |
+| `KEY_ENTER`, `\n`               | Confirm action                        |
 
 ## Customization
 
@@ -175,4 +206,4 @@ For a complete example, see the implementations for `zip_plugin.c` and `tar_plug
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
