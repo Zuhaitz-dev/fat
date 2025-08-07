@@ -276,15 +276,25 @@ static FatResult process_input(AppState *state, int ch) {
     }
     
     if (action == ACTION_OPEN_EXTERNAL) {
-        char command_buffer[512];
-        ui_get_command_input(state, command_buffer, sizeof(command_buffer));
-        if (command_buffer[0] != '\0') {
+        #ifdef USE_XDG_OPEN
+        // **SNAP-SPECIFIC CODE**
+        if (state->filepath && state->filepath[0] != '\0') {
             def_prog_mode();
             endwin();
             
             char full_command[1024];
-            snprintf(full_command, sizeof(full_command), "%s \"%s\"", command_buffer, state->filepath);
-            (void)system(full_command); // Execute the command
+            
+            #if defined(__linux__)
+                snprintf(full_command, sizeof(full_command), "xdg-open \"%s\"", state->filepath);
+            #elif defined(__APPLE__)
+                snprintf(full_command, sizeof(full_command), "open \"%s\"", state->filepath);
+            #elif defined(_WIN32)
+                snprintf(full_command, sizeof(full_command), "start \"\" \"%s\"", state->filepath);
+            #else
+                snprintf(full_command, sizeof(full_command), "xdg-open \"%s\"", state->filepath);
+            #endif
+            
+            (void)system(full_command);
             
             reset_prog_mode();
             refresh();
@@ -293,6 +303,26 @@ static FatResult process_input(AppState *state, int ch) {
                 state_reload_content(state, state->view_mode);
             }
         }
+        #else
+        // **NORMAL BUILD CODE**
+        char command_buffer[512];
+        ui_get_command_input(state, command_buffer, sizeof(command_buffer));
+        if (command_buffer[0] != '\0') {
+            def_prog_mode();
+            endwin();
+            
+            char full_command[1024];
+            snprintf(full_command, sizeof(full_command), "%s \"%s\"", command_buffer, state->filepath);
+            (void)system(full_command);
+            
+            reset_prog_mode();
+            refresh();
+
+            if (state->view_mode != VIEW_MODE_ARCHIVE) {
+                state_reload_content(state, state->view_mode);
+            }
+        }
+        #endif
         return FAT_SUCCESS;
     }
 
@@ -352,7 +382,7 @@ static FatResult process_input(AppState *state, int ch) {
         case VIEW_MODE_BINARY_HEX:
         case VIEW_MODE_NORMAL:
             {
-                int visible_content_width = getmaxx(state->right_pane) - 7 - 1;
+                int visible_content_width = getmaxy(state->right_pane) - 7 - 1;
                 int max_scroll_limit = (int)state->max_line_len - visible_content_width;
                 if (max_scroll_limit < 0) max_scroll_limit = 0;
 

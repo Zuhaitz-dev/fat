@@ -1,0 +1,47 @@
+name: zuhaitz-fat
+base: core22
+version: '0.1.0'
+summary: A TUI file and archive viewer for your terminal.
+description: |
+  FAT is a modern, TUI-based file and archive viewer for your terminal.
+  It's designed for developers and power users who want to quickly inspect
+  files and peek inside archives like .zip and .tar without having to
+  extract them first. It is lightweight, fast, and highly extensible.
+
+grade: stable
+confinement: strict
+
+apps:
+  fat:
+    command: usr/local/bin/fat
+    plugs:
+      - home
+      - removable-media
+      - desktop
+
+layout:
+  /usr/local/share/fat:
+    bind: $SNAP/usr/local/share/fat
+
+parts:
+  fat:
+    plugin: make
+    source: .
+    override-build: |
+      make release EXTRA_CFLAGS="-DUSE_XDG_OPEN"
+      make install DESTDIR=$CRAFT_PART_INSTALL
+      craftctl default
+    build-packages:
+      - build-essential
+      - gcc
+      - make
+      - libmagic-dev
+      - libncursesw5-dev
+      - libzip-dev
+      - libtar-dev
+    stage-packages:
+      - libmagic1
+      - libncursesw6
+      - libzip4
+      - libtinfo6
+      - libtar0
