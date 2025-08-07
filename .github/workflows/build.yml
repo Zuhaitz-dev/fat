@@ -1,4 +1,4 @@
-name: Build and Publish FAT Binaries
+name: Build FAT Binaries
 
 on:
   push:
@@ -29,27 +29,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Linux dependencies (including Snapcraft)
+      - name: Cache apt packages (amd64)
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-amd64-${{ hashFiles('**/lockfiles') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-amd64-
+
+      - name: Install Linux dependencies (amd64)
         run: |
-          # Commands run as root in the container, so sudo is not needed
           apt-get update
-          apt-get install -y --no-install-recommends \
+          apt-get install -y \
             git wget file build-essential gcc make \
-            libmagic-dev libncursesw5-dev libzip-dev libtar-dev fuse tar \
-            snapd
-          # Install snapcraft directly without sudo
-          snap install --classic snapcraft
+            libmagic-dev libncursesw5-dev libzip-dev libtar-dev fuse tar
 
       - name: Build for Linux amd64
         run: |
           make clean
           make release
-
-      - name: Build Snap package
-        run: |
-          # Add /snap/bin to the PATH and run snapcraft without sudo
-          export PATH="/snap/bin:$PATH"
-          snapcraft
 
       - name: Create Linux amd64 distributable package
         run: |
@@ -71,19 +69,19 @@ jobs:
 
       - name: Patch Makefile for FUSE-less AppImage build
         run: |
+          # Replace the direct AppImage call with the extracted AppRun executable
           sed -i 's|./linuxdeploy-x86_64.AppImage|./squashfs-root/AppRun|g' Makefile
 
       - name: Build AppImage using Makefile
         run: make appimage
 
-      - name: Upload Linux amd64 artifacts (including Snap)
+      - name: Upload Linux amd64 artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-amd64-dist
           path: |
             fat-linux-x86_64.tar.gz
             fat-*.AppImage
-            *.snap
 
       - name: Verify binary architecture (amd64)
         run: file package/bin/fat
@@ -96,6 +94,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Cache apt packages (arm64)
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-arm64-${{ hashFiles('**/lockfiles') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-arm64-
 
       - name: Install Linux dependencies (arm64)
         run: |
@@ -139,6 +145,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Cache Homebrew packages
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: ${{ runner.os }}-brew-${{ hashFiles('**/Brewfile') }}
+          restore-keys: |
+            ${{ runner.os }}-brew-
+
       - name: Install macOS dependencies
         run: |
           brew update
@@ -151,24 +165,33 @@ jobs:
 
       - name: Create macOS distributable package
         run: |
+          # 1. Create the directory structure for our package
           mkdir -p dist/package/bin
           mkdir -p dist/package/lib/fat/plugins
           mkdir -p dist/package/share/fat/themes
           mkdir -p dist/package/share/fat/defaults
+
+          # 2. Copy the main executable, themes, and plugins
           cp bin/fat-release dist/package/bin/fat
           cp themes/*.json dist/package/share/fat/themes/
           cp defaults/*.json dist/package/share/fat/defaults/
           cp plugins/*.dylib dist/package/lib/fat/plugins/
           cp lib/libfat_utils.dylib dist/package/lib/
+
+          # 3. Identify and copy required Homebrew libraries
           LIBS=$(otool -L bin/fat-release | grep /usr/local | awk '{print $1}')
           for lib in $LIBS; do
             cp "$lib" dist/package/lib/
           done
+
+          # 4. Fix library paths in the main executable
           for lib in $LIBS; do
             lib_name=$(basename "$lib")
             install_name_tool -change "$lib" "@executable_path/../lib/$lib_name" dist/package/bin/fat
           done
           install_name_tool -change "lib/libfat_utils.dylib" "@executable_path/../lib/libfat_utils.dylib" dist/package/bin/fat
+
+          # 5. Fix library paths within the bundled libraries themselves
           cd dist/package/lib
           for dylib in *.dylib; do
             install_name_tool -id "@rpath/$dylib" "$dylib"
@@ -178,7 +201,9 @@ jobs:
               install_name_tool -change "$dep" "@rpath/$dep_name" "$dylib"
             done
           done
-          cd ../../..
+          cd ../../.. # Go back to the root directory
+
+          # 6. Create a ZIP archive of the package
           cd dist/package
           zip -r ../fat-macos-arm64.zip .
           cd ../..
@@ -191,24 +216,3 @@ jobs:
 
       - name: Verify binary architecture
         run: file dist/package/bin/fat
-
-  publish-snap:
-    needs: build-linux-amd64
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Snap Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-amd64-dist
-
-      - name: Find snap file
-        id: find_snap
-        run: echo "snap_file=$(find . -name '*.snap')" >> $GITHUB_OUTPUT
-
-      - name: Publish to Snap Store
-        uses: snapcore/action-publish@v1
-        env:
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
-        with:
-          snap: ${{ steps.find_snap.outputs.snap_file }}
-          release: edge
