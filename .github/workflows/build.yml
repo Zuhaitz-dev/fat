@@ -23,21 +23,21 @@ jobs:
   build-linux-amd64:
     needs: clean-dist
     runs-on: ubuntu-latest
+    # Use an Ubuntu container, where snapd is fully supported
     container:
-      image: debian:11
+      image: ubuntu:22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Linux dependencies (including Snapcraft)
+      - name: Install Linux dependencies
         run: |
-          # Commands run as root in the container, so sudo is not needed
+          # In the Ubuntu container, we need sudo again
           apt-get update
-          apt-get install -y --no-install-recommends \
+          apt-get install -y \
             git wget file build-essential gcc make \
             libmagic-dev libncursesw5-dev libzip-dev libtar-dev fuse tar \
             snapd
-          snap install --classic snapcraft
 
       - name: Build for Linux amd64
         run: |
@@ -46,7 +46,7 @@ jobs:
 
       - name: Build Snap package
         run: |
-          # snapcraft is run directly without sudo
+          # We need to use sudo to run snapcraft
           snapcraft
 
       - name: Create Linux amd64 distributable package
@@ -63,6 +63,7 @@ jobs:
 
       - name: Download and prepare linuxdeploy
         run: |
+          apt-get install -y wget # Ensure wget is present in the container
           wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           chmod +x linuxdeploy-x86_64.AppImage
           ./linuxdeploy-x86_64.AppImage --appimage-extract
@@ -86,6 +87,7 @@ jobs:
       - name: Verify binary architecture (amd64)
         run: file package/bin/fat
 
+  # The arm64 build job does not create a snap, so it can remain on debian:11
   build-linux-arm64:
     needs: clean-dist
     runs-on: ubuntu-latest
@@ -94,14 +96,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Cache apt packages (arm64)
-        uses: actions/cache@v4
-        with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-arm64-${{ hashFiles('**/lockfiles') }}
-          restore-keys: |
-            ${{ runner.os }}-apt-arm64-
 
       - name: Install Linux dependencies (arm64)
         run: |
@@ -144,14 +138,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Cache Homebrew packages
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Caches/Homebrew
-          key: ${{ runner.os }}-brew-${{ hashFiles('**/Brewfile') }}
-          restore-keys: |
-            ${{ runner.os }}-brew-
 
       - name: Install macOS dependencies
         run: |
@@ -209,12 +195,8 @@ jobs:
   publish-snap:
     needs: build-linux-amd64
     runs-on: ubuntu-latest
-    container:
-      image: debian:11
+    # This also needs to run on Ubuntu to use the snapcore action
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
       - name: Download Snap Artifact
         uses: actions/download-artifact@v4
         with:
