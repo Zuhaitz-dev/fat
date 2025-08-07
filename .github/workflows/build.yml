@@ -1,4 +1,4 @@
-name: Build FAT Binaries
+name: Build and Publish FAT Binaries
 
 on:
   push:
@@ -75,13 +75,14 @@ jobs:
       - name: Build AppImage using Makefile
         run: make appimage
 
-      - name: Upload Linux amd64 artifacts
+      - name: Upload Linux amd64 artifacts (including Snap)
         uses: actions/upload-artifact@v4
         with:
           name: linux-amd64-dist
           path: |
             fat-linux-x86_64.tar.gz
             fat-*.AppImage
+            *.snap
 
       - name: Verify binary architecture (amd64)
         run: file package/bin/fat
@@ -216,3 +217,22 @@ jobs:
 
       - name: Verify binary architecture
         run: file dist/package/bin/fat
+
+  publish-snap:
+    # This job will run only after the amd64 build is successful
+    needs: build-linux-amd64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Snap Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-amd64-dist # The name of the artifact from the build job
+
+      - name: Publish to Snap Store
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
+        with:
+          # The snap file will be in the root of the artifact directory
+          snap: "*.snap"
+          release: edge # Automatically release to the edge channel
