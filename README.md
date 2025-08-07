@@ -186,7 +186,7 @@ fat project.zip
 
 FAT is designed to be easily customized. On the first run, it will create a configuration directory at `~/.config/fat/` (on Linux/macOS) or `%APPDATA%\fat` (on Windows).
 
-This directory will be populated with default themes. To create your own theme or modify an existing one, simply edit the `.json` files in the `~/.config/fat/themes/` directory. Your personal themes will automatically override the system-wide defaults.
+This directory is populated with default themes and keybindings. To create your own theme or modify an existing one, simply edit the `.json` files in the `~/.config/fat/themes/` directory. You can also customize your keybindings by editing `~/.config/fat/keybindings.json`. Your personal themes and keybindings will automatically override the system-wide defaults.
 
 ## Extending FAT (Plugin Development)
 
