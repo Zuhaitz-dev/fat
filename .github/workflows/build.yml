@@ -23,7 +23,6 @@ jobs:
   build-linux-amd64:
     needs: clean-dist
     runs-on: ubuntu-latest
-    # Use an Ubuntu container, where snapd is fully supported
     container:
       image: ubuntu:22.04
     steps:
@@ -32,12 +31,16 @@ jobs:
 
       - name: Install Linux dependencies
         run: |
-          # In the Ubuntu container, we need sudo again
           apt-get update
-          apt-get install -y \
+          apt-get install -y --no-install-recommends \
             git wget file build-essential gcc make \
             libmagic-dev libncursesw5-dev libzip-dev libtar-dev fuse tar \
             snapd
+
+      - name: Install Snapcraft
+        run: |
+          # Use sudo for snap install
+          sudo snap install --classic snapcraft
 
       - name: Build for Linux amd64
         run: |
@@ -46,7 +49,8 @@ jobs:
 
       - name: Build Snap package
         run: |
-          # We need to use sudo to run snapcraft
+          # Add /snap/bin to the PATH and run snapcraft
+          export PATH="/snap/bin:$PATH"
           snapcraft
 
       - name: Create Linux amd64 distributable package
@@ -63,7 +67,6 @@ jobs:
 
       - name: Download and prepare linuxdeploy
         run: |
-          apt-get install -y wget # Ensure wget is present in the container
           wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           chmod +x linuxdeploy-x86_64.AppImage
           ./linuxdeploy-x86_64.AppImage --appimage-extract
@@ -87,7 +90,6 @@ jobs:
       - name: Verify binary architecture (amd64)
         run: file package/bin/fat
 
-  # The arm64 build job does not create a snap, so it can remain on debian:11
   build-linux-arm64:
     needs: clean-dist
     runs-on: ubuntu-latest
@@ -195,7 +197,6 @@ jobs:
   publish-snap:
     needs: build-linux-amd64
     runs-on: ubuntu-latest
-    # This also needs to run on Ubuntu to use the snapcore action
     steps:
       - name: Download Snap Artifact
         uses: actions/download-artifact@v4
