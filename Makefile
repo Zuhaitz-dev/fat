@@ -18,6 +18,8 @@ endif
 # Variables
 # ==============================================================================
 CC ?= gcc
+# Add this line to allow for extra flags from the build environment
+EXTRA_CFLAGS ?=
 
 ifeq ($(DEBUG), 1)
 	BUILD_TYPE_STR := Debug
@@ -30,12 +32,13 @@ endif
 # ==============================================================================
 # Directories
 # ==============================================================================
-SRC_DIR := src
+SRC_BASE_DIR := src
 OBJ_DIR := obj/$(BUILD_DIR_SUFFIX)
 BIN_DIR := bin
 PLUGIN_DIR := plugins
 LIB_DIR := lib
 THEMES_DIR := themes
+DEFAULTS_DIR := defaults
 MAN_DIR := man
 
 TARGET := $(BIN_DIR)/fat-$(BUILD_DIR_SUFFIX)
@@ -75,9 +78,10 @@ endif
 COMMON_CFLAGS := -Wall -Wextra -Iinclude -fPIC -I/opt/homebrew/opt/libmagic/include -I/opt/homebrew/opt/libtar/include -I/opt/homebrew/opt/libzip/include -DFAT_VERSION=\"$(VERSION)\" -DINSTALL_PREFIX=\"$(PREFIX)\"
 
 ifeq ($(DEBUG), 1)
-	CFLAGS := $(COMMON_CFLAGS) -g3 -O0
+	CFLAGS := $(COMMON_CFLAGS) -g3 -O0 $(EXTRA_CFLAGS)
 else
-	CFLAGS := $(COMMON_CFLAGS) -O2 $(STRIP_FLAG)
+	# Append the EXTRA_CFLAGS variable here
+	CFLAGS := $(COMMON_CFLAGS) -O2 $(STRIP_FLAG) $(EXTRA_CFLAGS)
 endif
 
 LDFLAGS := $(LDFLAGS_NCURSES) -lmagic -L/opt/homebrew/opt/libmagic/lib $(LDFLAGS_PLATFORM) -L$(LIB_DIR) -lfat_utils -lm -lzip -L/opt/homebrew/opt/libzip/lib
@@ -88,14 +92,24 @@ endif
 # ==============================================================================
 # Source Files
 # ==============================================================================
-SOURCES := $(filter-out $(SRC_DIR)/string_list.c, $(wildcard $(SRC_DIR)/*.c))
-OBJECTS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SOURCES))
+
+# Find all .c files in the project
+SOURCES := $(wildcard $(SRC_BASE_DIR)/core/*.c $(SRC_BASE_DIR)/main/*.c $(SRC_BASE_DIR)/plugins/*.c $(SRC_BASE_DIR)/ui/*.c $(SRC_BASE_DIR)/utils/*.c)
+
+# Define the source files that will be compiled into the shared library
+SHARED_LIB_SRC := $(SRC_BASE_DIR)/utils/logger.c $(SRC_BASE_DIR)/core/string_list.c
+# Automatically generate the corresponding object file names
+SHARED_LIB_OBJ := $(patsubst $(SRC_BASE_DIR)/%.c,$(OBJ_DIR)/%.o,$(SHARED_LIB_SRC))
+
+# The application sources are all sources EXCEPT those used in the shared library
+APP_SOURCES := $(filter-out $(SHARED_LIB_SRC), $(SOURCES))
+# Automatically generate the object files for the main application
+OBJECTS := $(patsubst $(SRC_BASE_DIR)/%.c,$(OBJ_DIR)/%.o,$(APP_SOURCES))
 
 PLUGINS_SRC := tar zip
 PLUGINS_SO := $(foreach plugin,$(PLUGINS_SRC),$(PLUGIN_DIR)/$(plugin)_plugin$(SHARED_LIB_EXT))
 
 SHARED_LIB := $(LIB_DIR)/libfat_utils$(SHARED_LIB_EXT)
-SHARED_LIB_OBJ := $(OBJ_DIR)/logger.o $(OBJ_DIR)/string_list.o
 
 # ==============================================================================
 # Installation Paths
@@ -105,7 +119,8 @@ INSTALL_BIN_DIR := $(DESTDIR)$(PREFIX)/bin
 INSTALL_LIB_DIR := $(DESTDIR)$(PREFIX)/lib
 INSTALL_SHARE_DIR := $(DESTDIR)$(PREFIX)/share/fat
 INSTALL_PLUGINS_DIR := $(INSTALL_LIB_DIR)/fat/plugins
-INSTALL_THEMES_DIR := $(DESTDIR)$(PREFIX)/share/fat/themes
+INSTALL_THEMES_DIR := $(INSTALL_SHARE_DIR)/themes
+INSTALL_DEFAULTS_DIR := $(INSTALL_SHARE_DIR)/defaults
 INSTALL_MAN_DIR := $(DESTDIR)$(PREFIX)/share/man/man1
 
 # ==============================================================================
@@ -116,8 +131,9 @@ INSTALL_MAN_DIR := $(DESTDIR)$(PREFIX)/share/man/man1
 all: release
 
 release: build_lib app plugins
+
 debug:
-	@$(MAKE) all DEBUG=1
+	$(MAKE) all DEBUG=1
 
 build_lib: $(SHARED_LIB)
 app: $(TARGET)$(TARGET_EXT)
@@ -127,20 +143,13 @@ $(SHARED_LIB): $(SHARED_LIB_OBJ)
 	@mkdir -p $(LIB_DIR)
 	$(CC) -shared $(SHARED_LIB_OBJ) -o $(SHARED_LIB)
 
-$(OBJ_DIR)/logger.o: $(SRC_DIR)/logger.c
-	@mkdir -p $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(OBJ_DIR)/string_list.o: $(SRC_DIR)/string_list.c
-	@mkdir -p $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
 $(TARGET)$(TARGET_EXT): $(OBJECTS) $(SHARED_LIB)
 	@mkdir -p $(BIN_DIR)
 	$(CC) $(OBJECTS) -o $@$(TARGET_EXT) $(LDFLAGS) -Wl,-rpath,'$$ORIGIN/../lib'
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(OBJ_DIR)
+# Generic rule to compile any .c file from its new location into the obj directory
+$(OBJ_DIR)/%.o: $(SRC_BASE_DIR)/%.c
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(PLUGIN_DIR)/tar_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/tar_plugin.c | $(SHARED_LIB)
@@ -169,11 +178,13 @@ install: all
 	@mkdir -p $(INSTALL_BIN_DIR)
 	@mkdir -p $(INSTALL_PLUGINS_DIR)
 	@mkdir -p $(INSTALL_THEMES_DIR)
+	@mkdir -p $(INSTALL_DEFAULTS_DIR)
 	@mkdir -p $(INSTALL_MAN_DIR)
 	install -m 755 $(TARGET)$(TARGET_EXT) $(INSTALL_BIN_DIR)/fat$(TARGET_EXT)
 	install -m 644 $(SHARED_LIB) $(INSTALL_LIB_DIR)
 	install -m 644 $(PLUGIN_DIR)/*_plugin$(SHARED_LIB_EXT) $(INSTALL_PLUGINS_DIR)
 	install -m 644 $(THEMES_DIR)/*.json $(INSTALL_THEMES_DIR)
+	install -m 644 $(DEFAULTS_DIR)/*.json $(INSTALL_DEFAULTS_DIR)
 	install -m 644 $(MAN_DIR)/fat.1 $(INSTALL_MAN_DIR)/fat.1
 	@echo "Installation complete."
 	@echo "Run 'sudo ldconfig' to update the library cache (Linux only)."
@@ -183,7 +194,7 @@ uninstall:
 	rm -f $(INSTALL_BIN_DIR)/fat$(TARGET_EXT)
 	rm -f $(INSTALL_LIB_DIR)/libfat_utils.so
 	rm -rf $(INSTALL_LIB_DIR)/fat
-	rm -rf $(INSTALL_THEMES_DIR)
+	rm -rf $(INSTALL_SHARE_DIR)
 	rm -f $(INSTALL_MAN_DIR)/fat.1
 	@echo "Uninstallation complete."
 	@echo "Run 'sudo ldconfig' to update the library cache (Linux only)."
