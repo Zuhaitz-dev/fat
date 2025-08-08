@@ -225,11 +225,61 @@ void ui_show_message(const AppState *state, const char *message) {
 }
 
 /**
- * @brief Displays the help window with keybindings.
+ * @brief Displays a mode-aware help window with relevant keybindings.
  */
 void ui_show_help(const AppState* state) {
-    int height, width; getmaxyx(stdscr, height, width);
-    int help_h = 22, help_w = 55;
+    // Determine the current mode as a string
+    const char* current_mode_str = "normal";
+    switch (state->view_mode) {
+        case VIEW_MODE_ARCHIVE:     current_mode_str = "archive"; break;
+        case VIEW_MODE_BINARY_HEX:  current_mode_str = "binary";  break;
+        default:                    current_mode_str = "normal";  break;
+    }
+
+    // Create a temporary list of keybindings for the current mode
+    StringList relevant_keys;
+    StringList relevant_descs;
+    StringList_init(&relevant_keys);
+    StringList_init(&relevant_descs);
+
+    int max_key_len = 0;
+
+    for (int i = 0; i < ACTION_COUNT; i++) {
+        const Keybinding* kb = &state->config.keybindings[i];
+        bool mode_is_relevant = false;
+        for (size_t j = 0; j < kb->modes.count; j++) {
+            if (strcmp(kb->modes.lines[j], current_mode_str) == 0) {
+                mode_is_relevant = true;
+                break;
+            }
+        }
+
+        if (mode_is_relevant && kb->keys.count > 0 && kb->description) {
+            char keys_str[64] = {0};
+            for (size_t k = 0; k < kb->keys.count; k++) {
+                strcat(keys_str, kb->keys.lines[k]);
+                if (k < kb->keys.count - 1) {
+                    strcat(keys_str, ", ");
+                }
+            }
+            StringList_add(&relevant_keys, keys_str);
+            StringList_add(&relevant_descs, kb->description);
+
+            int current_key_len = (int)strlen(keys_str);
+            if (current_key_len > max_key_len) {
+                max_key_len = current_key_len;
+            }
+        }
+    }
+
+    // Dynamically calculate window size
+    int height, width;
+    getmaxyx(stdscr, height, width);
+    int help_h = (int)relevant_keys.count + 4; // 2 for borders, 2 for title/footer
+    int help_w = max_key_len + 45; // 4 for padding, 1 for ':', 38 for desc, 2 for border
+    if (help_h > height - 2) help_h = height - 2;
+    if (help_w > width - 2) help_w = width - 2;
+
     int start_y = (height - help_h) / 2;
     int start_x = (width - help_w) / 2;
     WINDOW* help_win = newwin(help_h, help_w, start_y, start_x);
@@ -239,45 +289,30 @@ void ui_show_help(const AppState* state) {
     box(help_win, 0, 0);
     wattroff(help_win, COLOR_PAIR(COLOR_PAIR_HELP_BORDER));
 
-    const char* title = (state->view_mode == VIEW_MODE_ARCHIVE) ? "Archive Navigation" : "KEYBINDINGS";
-    mvwprintw(help_win, 1, (help_w - strlen(title)) / 2, "%s", title);
+    char title[64];
+    snprintf(title, sizeof(title), "Keybindings (%s mode)", current_mode_str);
+    wattron(help_win, A_BOLD);
+    mvwprintw(help_win, 1, (help_w - (int)strlen(title)) / 2, "%s", title);
+    wattroff(help_win, A_BOLD);
 
-    int line_num = 3;
-    for (int i = 0; i < ACTION_COUNT; i++) {
-        const Keybinding* kb = &state->config.keybindings[i];
-        if (kb->keys.count > 0 && kb->description) {
-             // Simple logic to show relevant keys based on view mode
-            bool show = true;
-            if (state->view_mode != VIEW_MODE_ARCHIVE) {
-                if(kb->action == ACTION_CONFIRM) show = false;
-            } else {
-                 if(kb->action > ACTION_JUMP_TO_END) show = false;
-            }
-            if (!show) continue;
+    for (size_t i = 0; i < relevant_keys.count; i++) {
+        int line_y = (int)i + 2;
+        if (line_y >= help_h - 1) break; // Don't draw past window boundary
 
+        wattron(help_win, COLOR_PAIR(COLOR_PAIR_HELP_KEY) | A_BOLD);
+        mvwprintw(help_win, line_y, 3, "%-*s", max_key_len, relevant_keys.lines[i]);
+        wattroff(help_win, COLOR_PAIR(COLOR_PAIR_HELP_KEY) | A_BOLD);
 
-            // Join keys with a "/"
-            char keys_str[64] = {0};
-            for (size_t j = 0; j < kb->keys.count; j++) {
-                strcat(keys_str, kb->keys.lines[j]);
-                if (j < kb->keys.count - 1) {
-                    strcat(keys_str, "/");
-                }
-            }
-            
-            wattron(help_win, COLOR_PAIR(COLOR_PAIR_HELP_KEY) | A_BOLD);
-            mvwprintw(help_win, line_num, 3, "%-12s", keys_str);
-            wattroff(help_win, COLOR_PAIR(COLOR_PAIR_HELP_KEY) | A_BOLD);
-            wprintw(help_win, ": %s", kb->description);
-            line_num++;
-        }
+        wprintw(help_win, " : %s", relevant_descs.lines[i]);
     }
-
 
     mvwprintw(help_win, help_h - 2, (help_w - 21) / 2, "Press any key to close");
     wrefresh(help_win);
     getch();
     delwin(help_win);
+
+    StringList_free(&relevant_keys);
+    StringList_free(&relevant_descs);
     touchwin(stdscr);
     wnoutrefresh(stdscr);
     doupdate();

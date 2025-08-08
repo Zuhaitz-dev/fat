@@ -54,6 +54,7 @@ typedef struct {
     char* name;
     char* description;
     StringList keys;
+    StringList modes;
 } Keybinding;
 
 

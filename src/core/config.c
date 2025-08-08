@@ -396,6 +396,7 @@ static void config_free_keybindings(AppConfig* config) {
         free(config->keybindings[i].name);
         free(config->keybindings[i].description);
         StringList_free(&config->keybindings[i].keys);
+        StringList_free(&config->keybindings[i].modes);
     }
 }
 
@@ -466,6 +467,7 @@ static void parse_keybindings_json(const char* filepath, AppConfig* config) {
         free(kb->name);
         free(kb->description);
         StringList_free(&kb->keys);
+        StringList_free(&kb->modes);
 
         kb->action = action;
         kb->name = strdup(name_json->valuestring);
@@ -480,6 +482,14 @@ static void parse_keybindings_json(const char* filepath, AppConfig* config) {
         cJSON_ArrayForEach(key_str_json, keys_array) {
             if (cJSON_IsString(key_str_json)) {
                 StringList_add(&kb->keys, key_str_json->valuestring);
+            }
+        }
+
+        cJSON* modes_array = cJSON_GetObjectItemCaseSensitive(action_obj, "modes");
+        cJSON* mode_str_json;
+        cJSON_ArrayForEach(mode_str_json, modes_array) {
+            if (cJSON_IsString(mode_str_json)) {
+                StringList_add(&kb->modes, mode_str_json->valuestring);
             }
         }
     }
@@ -498,6 +508,7 @@ static void config_load_keybindings(AppState* state) {
         state->config.keybindings[i].name = NULL;
         state->config.keybindings[i].description = NULL;
         StringList_init(&state->config.keybindings[i].keys);
+        StringList_init(&state->config.keybindings[i].modes);
     }
     
     // 2 - Parse default, system, and user keybinding files. Each subsequent

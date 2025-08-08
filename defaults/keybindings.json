@@ -3,102 +3,122 @@
     {
       "name": "quit",
       "description": "Quit the application",
-      "keys": ["q"]
+      "keys": ["q"],
+      "modes": ["normal", "archive", "binary"]
     },
     {
       "name": "scroll_down",
       "description": "Scroll line by line",
-      "keys": ["j", "KEY_DOWN"]
+      "keys": ["j", "KEY_DOWN"],
+      "modes": ["normal", "archive", "binary"]
     },
     {
       "name": "scroll_up",
       "description": "Scroll line by line",
-      "keys": ["k", "KEY_UP"]
+      "keys": ["k", "KEY_UP"],
+      "modes": ["normal", "archive", "binary"]
     },
     {
       "name": "scroll_left",
       "description": "Scroll horizontally",
-      "keys": ["h", "KEY_LEFT"]
+      "keys": ["h", "KEY_LEFT"],
+      "modes": ["normal", "binary"]
     },
     {
       "name": "scroll_right",
       "description": "Scroll horizontally",
-      "keys": ["l", "KEY_RIGHT"]
+      "keys": ["l", "KEY_RIGHT"],
+      "modes": ["normal", "binary"]
     },
     {
       "name": "page_down",
       "description": "Scroll page by page",
-      "keys": ["KEY_NPAGE"]
+      "keys": ["KEY_NPAGE"],
+      "modes": ["normal", "archive", "binary"]
     },
     {
       "name": "page_up",
       "description": "Scroll page by page",
-      "keys": ["KEY_PPAGE"]
+      "keys": ["KEY_PPAGE"],
+      "modes": ["normal", "archive", "binary"]
     },
     {
       "name": "jump_to_start",
       "description": "Jump to beginning of content",
-      "keys": ["g"]
+      "keys": ["g"],
+      "modes": ["normal", "archive", "binary"]
     },
     {
       "name": "jump_to_end",
       "description": "Jump to end of content",
-      "keys": ["G"]
+      "keys": ["G"],
+      "modes": ["normal", "archive", "binary"]
     },
     {
       "name": "jump_to_line",
       "description": "Go to line",
-      "keys": ["o"]
+      "keys": ["o"],
+      "modes": ["normal", "binary"]
     },
     {
       "name": "toggle_wrap",
       "description": "Toggle line wrapping (Text mode)",
-      "keys": ["w"]
+      "keys": ["w"],
+      "modes": ["normal"]
     },
     {
       "name": "search",
       "description": "Search for text/hex",
-      "keys": ["/"]
+      "keys": ["/"],
+      "modes": ["normal", "binary"]
     },
     {
       "name": "next_match",
       "description": "Next/prev search match",
-      "keys": ["n"]
+      "keys": ["n"],
+      "modes": ["normal", "binary"]
     },
     {
       "name": "prev_match",
       "description": "Next/prev search match",
-      "keys": ["N"]
+      "keys": ["N"],
+      "modes": ["normal", "binary"]
     },
     {
       "name": "toggle_view_mode",
       "description": "Toggle Text/Hex View",
-      "keys": ["t"]
+      "keys": ["t"],
+      "modes": ["normal", "binary"]
     },
     {
       "name": "open_external",
       "description": "Open with external command",
-      "keys": ["O"]
+      "keys": ["O"],
+      "modes": ["normal", "archive", "binary"]
     },
     {
       "name": "go_back",
       "description": "Go back (from archive)",
-      "keys": ["KEY_BACKSPACE", "KEY_ESC"]
+      "keys": ["KEY_BACKSPACE", "KEY_ESC"],
+      "modes": ["normal", "archive", "binary"]
     },
     {
       "name": "select_theme",
       "description": "Change theme",
-      "keys": ["KEY_F(2)"]
+      "keys": ["KEY_F(2)"],
+      "modes": ["normal", "archive", "binary"]
     },
     {
       "name": "toggle_help",
       "description": "Show this help screen",
-      "keys": ["?"]
+      "keys": ["?"],
+      "modes": ["normal", "archive", "binary"]
     },
     {
         "name": "confirm",
         "description": "Confirm action",
-        "keys": ["KEY_ENTER", "\n"]
+        "keys": ["KEY_ENTER", "\n"],
+        "modes": ["archive"]
     }
   ]
 }

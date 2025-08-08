@@ -62,7 +62,14 @@ FatResult state_init(AppState *state, const char *filepath) {
         char exe_dir[PATH_MAX];
         if (get_executable_dir(exe_dir, sizeof(exe_dir)) == 0) {
             char dev_themes_dir[PATH_MAX];
+
+            // Check for the themes dir in two common locations
             snprintf(dev_themes_dir, sizeof(dev_themes_dir), "%s/../../themes", exe_dir);
+            if (!dir_exists(dev_themes_dir)) {
+                // If not found, try another common location (e.g., if running from root)
+                snprintf(dev_themes_dir, sizeof(dev_themes_dir), "%s/../themes", exe_dir);
+            }
+
             if (dir_exists(dev_themes_dir)) {
                 theme_discover(dev_themes_dir, &state->theme_paths);
             }
