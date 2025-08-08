@@ -40,11 +40,13 @@ jobs:
       - name: Install Linux dependencies (amd64)
         run: |
           apt-get update
-          # ADDED tar TO THE INSTALLATION LIST
           apt-get install -y \
             git wget file build-essential gcc make \
             libmagic-dev libncursesw5-dev libzip-dev libtar-dev fuse tar
 
+      - name: Grant execute permissions to the script
+        run: chmod +x ./update_version.sh
+        
       - name: Run version update script
         run: |
           ./update_version.sh
@@ -112,12 +114,14 @@ jobs:
         run: |
           dpkg --add-architecture arm64
           apt-get update
-          # ADDED tar TO THE INSTALLATION LIST
           apt-get install -y \
             git wget file build-essential make tar \
             gcc-aarch64-linux-gnu \
             libmagic-dev:arm64 libncursesw5-dev:arm64 libzip-dev:arm64 libtar-dev:arm64
-
+      
+      - name: Grant execute permissions to the script
+        run: chmod +x ./update_version.sh
+      
       - name: Run version update script
         run: |
           ./update_version.sh
@@ -168,6 +172,9 @@ jobs:
           brew update
           brew install gcc make libmagic ncurses libzip libtool libtar
 
+      - name: Grant execute permissions to the script
+        run: chmod +x ./update_version.sh
+      
       - name: Run version update script
         run: |
           ./update_version.sh
