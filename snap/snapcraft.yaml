@@ -1,6 +1,6 @@
 name: zuhaitz-fat
 base: core22
-version: '0.1.0'
+version: '0.2.0'
 summary: A TUI file and archive viewer for your terminal.
 description: |
   FAT is a modern, TUI-based file and archive viewer for your terminal.

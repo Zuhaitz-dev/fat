@@ -2,7 +2,7 @@
 # Configuration
 # ==============================================================================
 DEBUG ?= 0
-VERSION := "v0.1.0-beta - (Betelgeuse)"
+VERSION := "$(shell cat .version/VERSION_FILE) - ($(shell cat .version/CODENAME_FILE))"
 PREFIX ?= /usr/local
 
 # ==============================================================================
