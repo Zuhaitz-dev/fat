@@ -68,6 +68,8 @@ typedef struct {
     StringList binary_mimes;    /**< List of MIME types to always treat as binary. */
     Keybinding keybindings[ACTION_COUNT]; /**< Holds all loaded keybindings. */
     Action key_map[MAX_KEY_CODE];       /**< Fast lookup map from keycode to Action. */
+    int min_term_width;         /**< Minimum terminal width required. */
+    int min_term_height;        /**< Minimum terminal height required. */
 } AppConfig;
 
 
@@ -126,18 +128,18 @@ typedef struct {
  * @brief The central data structure holding the entire application state.
  */
 typedef struct {
-    // --- UI Pointers (managed by main.c and ui.c) ---
+    // **UI Pointers (managed by main.c and ui.c)**
     WINDOW *left_pane;      /**< ncurses window for file metadata. */
     WINDOW *right_pane;     /**< ncurses window for file content. */
     WINDOW *status_bar;     /**< ncurses window for the status bar. */
 
-    // --- View-Specific Data (managed by state.c) ---
+    // **View-Specific Data (managed by state.c)**
     StringList metadata;    /**< Metadata for the current file (for left pane). */
     StringList content;     /**< Content of the current file/archive (for right pane). */
     char *filepath;         /**< The path to the currently loaded file. */
     size_t max_line_len;    /**< The length of the longest line in the current content. */
 
-    // --- View State ---
+    // **View State**
     int top_line;           /**< The index of the content line at the top of the right pane. */
     int left_char;          /**< The index of the character at the left of the right pane (for horizontal scrolling). */
     ViewMode view_mode;     /**< The current view mode (Normal, Archive, Hex). */
@@ -145,14 +147,14 @@ typedef struct {
     Theme *theme;           /**< The currently active theme. */
     bool line_wrap_enabled; /**< Flag for whether line wrapping is active. */
 
-    // --- App-Lifetime Data ---
+    // **App-Lifetime Data**
     ForceViewMode force_view_mode;      /**< A flag to force a view mode, set at startup. */
     StringList theme_paths;             /**< A list of full paths to all discovered themes. */
     char themes_dir_path[PATH_MAX];     /**< The path to the themes directory. */
     StringList breadcrumbs;             /**< Navigation history (a stack of file paths). */
     AppConfig config;                   /**< Holds user-defined configuration settings. */
 
-    // --- Search State ---
+    // **Search State**
     char search_term[256];              /**< The current search term entered by the user. */
     bool search_term_active;            /**< True if a search term is currently active. */
     SearchMatchList search_results;     /**< A list of all found matches for the current term. */

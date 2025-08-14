@@ -20,16 +20,11 @@
 #include <windows.h>
 #endif
 
-// **Application Constants**
-#define MIN_TERM_WIDTH 80
-#define MIN_TERM_HEIGHT 20
-
-
 // **Forward Declarations**
 static void print_help(const char* executable_name);
 static FatResult process_input(AppState *state, int ch);
 static void cleanup_temp_file_if_exists(const char* path);
-static bool check_terminal_size(void);
+static bool check_terminal_size(const AppState* state);
 
 /**
  * @brief Prints the help message to the console and exits.
@@ -93,15 +88,20 @@ int main(int argc, char *argv[]) {
     setlocale(LC_ALL, "");
 
     ui_init();
+    
+    AppState state = {0};
+    state.force_view_mode = force_mode; // Pass the forced mode to the state
+    
+    // Load configuration to get terminal size requirements before checking
+    config_load(&state);
 
-    if (!check_terminal_size()) {
+
+    if (!check_terminal_size(&state)) {
         ui_destroy();
         logger_destroy();
         return 0;
     }
 
-    AppState state = {0};
-    state.force_view_mode = force_mode; // Pass the forced mode to the state
 
     int height, width;
     getmaxyx(stdscr, height, width);
@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
             break;
         }
 
-        if (!check_terminal_size()) {
+        if (!check_terminal_size(&state)) {
             break;
         }
 
@@ -166,18 +166,21 @@ int main(int argc, char *argv[]) {
 /**
  * @brief Continuously checks terminal size, pausing execution until it's valid.
  */
-static bool check_terminal_size(void) {
+static bool check_terminal_size(const AppState* state) {
     int height, width;
     getmaxyx(stdscr, height, width);
 
-    if (width >= MIN_TERM_WIDTH && height >= MIN_TERM_HEIGHT) {
+    int min_width = state->config.min_term_width;
+    int min_height = state->config.min_term_height;
+
+    if (width >= min_width && height >= min_height) {
         return true;
     }
 
     nodelay(stdscr, TRUE);
     while (1) {
         getmaxyx(stdscr, height, width);
-        if (width >= MIN_TERM_WIDTH && height >= MIN_TERM_HEIGHT) {
+        if (width >= min_width && height >= min_height) {
             nodelay(stdscr, FALSE);
             clear();
             refresh();
@@ -188,7 +191,7 @@ static bool check_terminal_size(void) {
         if (width >= 45) {
             char msg1[100], msg2[100];
             snprintf(msg1, sizeof(msg1), "Terminal is too small.");
-            snprintf(msg2, sizeof(msg2), "Current: %dx%d, Required: %dx%d", width, height, MIN_TERM_WIDTH, MIN_TERM_HEIGHT);
+            snprintf(msg2, sizeof(msg2), "Current: %dx%d, Required: %dx%d", width, height, min_width, min_height);
 
             mvprintw(height / 2 - 1, (width - strlen(msg1)) / 2, "%s", msg1);
             mvprintw(height / 2, (width - strlen(msg2)) / 2, "%s", msg2);

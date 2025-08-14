@@ -229,7 +229,10 @@ static void parse_csv_to_stringlist(const char* value, StringList* list) {
  * @brief Loads user settings, creating defaults and copying themes on first run.
  */
 void config_load(AppState* state) {
+    // Set default values first
     state->config.default_theme_name = NULL;
+    state->config.min_term_width = 80;
+    state->config.min_term_height = 20;
     StringList_init(&state->config.text_mimes);
     StringList_init(&state->config.binary_mimes);
 
@@ -259,6 +262,11 @@ void config_load(AppState* state) {
             fprintf(create_file, "# FAT (File & Archive Tool) Configuration File\n\n");
             fprintf(create_file, "# Set the default theme by its name (without the .json extension).\n");
             fprintf(create_file, "# Example: default_theme = nord\n\n");
+            fprintf(create_file, "# --- Terminal Size Configuration ---\n");
+            fprintf(create_file, "# Set the minimum required terminal dimensions.\n");
+            fprintf(create_file, "# Default is 80x20 if not specified.\n");
+            fprintf(create_file, "min_term_width = 80\n");
+            fprintf(create_file, "min_term_height = 20\n\n");
             fprintf(create_file, "# --- MIME Type Configuration ---\n");
             fprintf(create_file, "# Force files with these MIME types to be treated as text or binary.\n");
             fprintf(create_file, "# Values are comma-separated.\n");
@@ -309,6 +317,16 @@ void config_load(AppState* state) {
                 parse_csv_to_stringlist(value, &state->config.text_mimes);
             } else if (strcmp(key, "binary_mimes") == 0) {
                 parse_csv_to_stringlist(value, &state->config.binary_mimes);
+            } else if (strcmp(key, "min_term_width") == 0) {
+                int width = atoi(value);
+                if (width > 0) {
+                    state->config.min_term_width = width;
+                }
+            } else if (strcmp(key, "min_term_height") == 0) {
+                int height = atoi(value);
+                if (height > 0) {
+                    state->config.min_term_height = height;
+                }
             }
         }
     }
