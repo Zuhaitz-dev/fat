@@ -168,15 +168,16 @@ fat project.zip
 | `j`/`k`, `KEY_DOWN`/`KEY_UP`    | Scroll line by line                   |
 | `h`/`l`, `KEY_LEFT`/`KEY_RIGHT`	| Scroll horizontally                   |
 | `KEY_NPAGE`/`KEY_PPAGE`    	    | Scroll page by page                   |
-| `g`	                            | Jump to beginning of content          |
+| `gg`                            | Jump to beginning of content          |
 | `G`	                            | Jump to end of content                |
-| `o`	                            | Go to line                            |
+| `gt`                            | Go to line                            |
 | `w`	                            | Toggle line wrapping (Text mode)      |
 | `/`	                            | Search for text/hex                   |
 | `n`	                            | Next search match                     |
 | `N`	                            | Previous search match                 |
 | `t`	                            | Toggle Text/Hex View                  |
 | `O`	                            | Open with external command            |
+| `o`                             | Open with default external command    |
 | `KEY_BACKSPACE`, `KEY_ESC`	    | Go back (from archive)                |
 | `KEY_F(2)`	                    | Change theme                          |
 | `?`	                            | Show this help screen                 |
