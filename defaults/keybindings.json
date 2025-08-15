@@ -45,7 +45,7 @@
     {
       "name": "jump_to_start",
       "description": "Jump to beginning of content",
-      "keys": ["g"],
+      "keys": ["gg"],
       "modes": ["normal", "archive", "binary"]
     },
     {
@@ -57,7 +57,7 @@
     {
       "name": "jump_to_line",
       "description": "Go to line",
-      "keys": ["o"],
+      "keys": ["gt"],
       "modes": ["normal", "binary"]
     },
     {
@@ -94,6 +94,12 @@
       "name": "open_external",
       "description": "Open with external command",
       "keys": ["O"],
+      "modes": ["normal", "archive", "binary"]
+    },
+    {
+      "name": "open_external_default",
+      "description": "Open with default external command",
+      "keys": ["o"],
       "modes": ["normal", "archive", "binary"]
     },
     {

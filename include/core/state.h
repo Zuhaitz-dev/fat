@@ -37,6 +37,7 @@ typedef enum {
     ACTION_PREV_MATCH,
     ACTION_TOGGLE_VIEW_MODE,
     ACTION_OPEN_EXTERNAL,
+    ACTION_OPEN_EXTERNAL_DEFAULT,
     ACTION_GO_BACK,
     ACTION_SELECT_THEME,
     ACTION_TOGGLE_HELP,
@@ -57,6 +58,16 @@ typedef struct {
     StringList modes;
 } Keybinding;
 
+/**
+ * @struct MimeCommand
+ * @brief Associates a MIME type with a command and an optional description.
+ */
+typedef struct {
+    char* mime_type;
+    char* command;
+    char* description;
+} MimeCommand;
+
 
 /**
  * @struct AppConfig
@@ -70,6 +81,9 @@ typedef struct {
     Action key_map[MAX_KEY_CODE];       /**< Fast lookup map from keycode to Action. */
     int min_term_width;         /**< Minimum terminal width required. */
     int min_term_height;        /**< Minimum terminal height required. */
+    MimeCommand* mime_commands; /**< Array of MIME type to command mappings. */
+    size_t mime_commands_count; /**< Number of mime_commands. */
+    char* default_command;      /**< The default command for all file types. */
 } AppConfig;
 
 

@@ -233,6 +233,9 @@ void config_load(AppState* state) {
     state->config.default_theme_name = NULL;
     state->config.min_term_width = 80;
     state->config.min_term_height = 20;
+    state->config.mime_commands = NULL;
+    state->config.mime_commands_count = 0;
+    state->config.default_command = NULL;
     StringList_init(&state->config.text_mimes);
     StringList_init(&state->config.binary_mimes);
 
@@ -273,7 +276,13 @@ void config_load(AppState* state) {
             fprintf(create_file, "# Example: text_mimes = application/json, application/xml\n");
             fprintf(create_file, "# Example: binary_mimes = application/octet-stream\n");
             fprintf(create_file, "text_mimes = application/json\n");
-            fprintf(create_file, "binary_mimes =\n");
+            fprintf(create_file, "binary_mimes =\n\n");
+            fprintf(create_file, "# --- Default External Commands ---\n");
+            fprintf(create_file, "# Set a default command for all file types.\n");
+            fprintf(create_file, "# default_command = vim\n\n");
+            fprintf(create_file, "# Set specific commands for MIME types.\n");
+            fprintf(create_file, "# mime.image/png = feh\n");
+            fprintf(create_file, "# mime.application/pdf = zathura\n");
 
             fclose(create_file);
 
@@ -327,6 +336,24 @@ void config_load(AppState* state) {
                 if (height > 0) {
                     state->config.min_term_height = height;
                 }
+            } else if (strcmp(key, "default_command") == 0) {
+                state->config.default_command = strdup(value);
+            } else if (strncmp(key, "mime.", 5) == 0) {
+                char* mime_type = key + 5;
+                char* command = value;
+                char* description = NULL;
+                char* hash = strchr(value, '#');
+                if(hash){
+                    *hash = '\0';
+                    description = hash + 1;
+                    while(isspace((unsigned char)*description)) description++;
+                }
+
+                state->config.mime_commands_count++;
+                state->config.mime_commands = realloc(state->config.mime_commands, state->config.mime_commands_count * sizeof(MimeCommand));
+                state->config.mime_commands[state->config.mime_commands_count - 1].mime_type = strdup(mime_type);
+                state->config.mime_commands[state->config.mime_commands_count - 1].command = strdup(command);
+                state->config.mime_commands[state->config.mime_commands_count - 1].description = description ? strdup(description) : NULL;
             }
         }
     }
@@ -345,6 +372,15 @@ void config_free(AppState* state) {
     state->config.default_theme_name = NULL;
     StringList_free(&state->config.text_mimes);
     StringList_free(&state->config.binary_mimes);
+
+    for(size_t i = 0; i < state->config.mime_commands_count; i++){
+        free(state->config.mime_commands[i].mime_type);
+        free(state->config.mime_commands[i].command);
+        free(state->config.mime_commands[i].description);
+    }
+    free(state->config.mime_commands);
+    free(state->config.default_command);
+
     config_free_keybindings(&state->config);
 }
 
@@ -399,6 +435,7 @@ static Action action_name_to_enum(const char* name) {
     if (strcmp(name, "prev_match") == 0) return ACTION_PREV_MATCH;
     if (strcmp(name, "toggle_view_mode") == 0) return ACTION_TOGGLE_VIEW_MODE;
     if (strcmp(name, "open_external") == 0) return ACTION_OPEN_EXTERNAL;
+    if (strcmp(name, "open_external_default") == 0) return ACTION_OPEN_EXTERNAL_DEFAULT;
     if (strcmp(name, "go_back") == 0) return ACTION_GO_BACK;
     if (strcmp(name, "select_theme") == 0) return ACTION_SELECT_THEME;
     if (strcmp(name, "toggle_help") == 0) return ACTION_TOGGLE_HELP;

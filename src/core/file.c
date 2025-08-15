@@ -18,6 +18,31 @@
 #include <errno.h>
 
 /**
+ * @brief Gets the MIME type of a file using libmagic.
+ * @param path The path to the file.
+ * @return A heap-allocated string with the MIME type, or NULL on failure. The caller must free this string.
+ */
+char* get_file_mime_type(const char* path) {
+    magic_t magic_cookie = magic_open(MAGIC_MIME_TYPE | MAGIC_ERROR);
+    if (magic_cookie == NULL) {
+        LOG_INFO("magic_open failed");
+        return NULL;
+    }
+    if (magic_load(magic_cookie, NULL) != 0) {
+        LOG_INFO("magic_load failed: %s", magic_error(magic_cookie));
+        magic_close(magic_cookie);
+        return NULL;
+    }
+    const char* mime_type = magic_file(magic_cookie, path);
+    char* result = NULL;
+    if (mime_type) {
+        result = strdup(mime_type);
+    }
+    magic_close(magic_cookie);
+    return result;
+}
+
+/**
  * @brief Gets file metadata (name, size, type, etc.) using stat and libmagic.
  *
  * @param path The path to the file to inspect.
@@ -26,7 +51,6 @@
  */
 FatResult get_file_info(const char* path, StringList* info) {
     struct stat st;
-    magic_t magic_cookie = NULL;
     char buffer[512];
 
     // Use stat to get most of the file information.
@@ -44,22 +68,13 @@ FatResult get_file_info(const char* path, StringList* info) {
     if (StringList_add(info, buffer) != FAT_SUCCESS) return FAT_ERROR_MEMORY;
 
     // MIME Type (using libmagic)
-    magic_cookie = magic_open(MAGIC_MIME_TYPE | MAGIC_ERROR);
-    if (magic_cookie == NULL) {
-        LOG_INFO("magic_open failed");
-    } else {
-        if (magic_load(magic_cookie, NULL) == 0) {
-            const char* magic_full = magic_file(magic_cookie, path);
-            snprintf(buffer, sizeof(buffer), "Type: %s", magic_full ? magic_full : "unknown");
-            if (StringList_add(info, buffer) != FAT_SUCCESS) {
-                magic_close(magic_cookie);
-                return FAT_ERROR_MEMORY;
-            }
-        } else {
-            LOG_INFO("magic_load failed: %s", magic_error(magic_cookie));
-        }
-        magic_close(magic_cookie);
+    char* mime_type = get_file_mime_type(path);
+    snprintf(buffer, sizeof(buffer), "Type: %s", mime_type ? mime_type : "unknown");
+    if (StringList_add(info, buffer) != FAT_SUCCESS) {
+        free(mime_type);
+        return FAT_ERROR_MEMORY;
     }
+    free(mime_type);
     
     // Size
     snprintf(buffer, sizeof(buffer), "Size: %ld bytes", (long)st.st_size);

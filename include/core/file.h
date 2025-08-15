@@ -14,6 +14,13 @@
 #include "core/error.h"
 
 /**
+ * @brief Gets the MIME type of a file using libmagic.
+ * @param path The path to the file.
+ * @return A heap-allocated string with the MIME type, or NULL on failure. The caller must free this string.
+ */
+char* get_file_mime_type(const char* path);
+
+/**
  * @brief Gets file metadata (name, size, type, etc.) using stat and libmagic.
  *
  * This function populates a StringList with human-readable lines of file

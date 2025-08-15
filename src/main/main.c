@@ -10,6 +10,7 @@
 #include "core/error.h"
 #include "utils/utf8_utils.h"
 #include "core/config.h"
+#include "core/file.h"
 #include <locale.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -25,6 +26,7 @@ static void print_help(const char* executable_name);
 static FatResult process_input(AppState *state, int ch);
 static void cleanup_temp_file_if_exists(const char* path);
 static bool check_terminal_size(const AppState* state);
+static const char* find_command_for_file(AppState* state);
 
 /**
  * @brief Prints the help message to the console and exits.
@@ -228,6 +230,23 @@ static void cleanup_temp_file_if_exists(const char* path) {
     }
 }
 
+/**
+ * @brief Finds the configured command for the current file.
+ */
+static const char* find_command_for_file(AppState* state) {
+    char* mime_type = get_file_mime_type(state->filepath);
+    if (mime_type) {
+        for (size_t i = 0; i < state->config.mime_commands_count; i++) {
+            if (strcmp(mime_type, state->config.mime_commands[i].mime_type) == 0) {
+                free(mime_type);
+                return state->config.mime_commands[i].command;
+            }
+        }
+        free(mime_type);
+    }
+    return state->config.default_command;
+}
+
 
 /**
  * @brief Processes a single character of user input and updates the state.
@@ -236,6 +255,27 @@ static FatResult process_input(AppState *state, int ch) {
     int page_size = getmaxy(state->right_pane) - 2;
     if (page_size < 1) page_size = 1;
     FatResult res = FAT_SUCCESS;
+
+    // Handle multi-key 'g' prefix sequences first
+    if (ch == 'g') {
+        int next_ch = getch(); // Block and wait for the next key
+        if (next_ch == 't') {
+            // "gt" sequence for ACTION_JUMP_TO_LINE
+            int target_line = ui_get_line_input(state);
+            if (target_line > 0) {
+                state->top_line = target_line - 1;
+                if (state->top_line >= (int)state->content.count) {
+                    state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
+                }
+            }
+        } else if (next_ch == 'g') {
+            // "gg" sequence for ACTION_JUMP_TO_START
+            state->top_line = 0;
+            state->left_char = 0;
+        }
+        // If next_ch is something else, the sequence is ignored.
+        return FAT_SUCCESS;
+    }
 
     Action action = (ch >= 0 && ch < MAX_KEY_CODE) ? state->config.key_map[ch] : ACTION_NONE;
 
@@ -256,47 +296,33 @@ static FatResult process_input(AppState *state, int ch) {
         ui_show_help(state);
         return FAT_SUCCESS;
     }
-    if (action == ACTION_JUMP_TO_LINE) {
-        int target_line = ui_get_line_input(state);
-        if (target_line > 0) {
-            state->top_line = target_line - 1;
-            if (state->top_line >= (int)state->content.count) {
-                state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
-            }
-        }
-        return FAT_SUCCESS;
-    }
-
-    if (action == ACTION_JUMP_TO_START) {
-        state->top_line = 0;
-        state->left_char = 0;
-        return FAT_SUCCESS;
-    }
     if (action == ACTION_JUMP_TO_END) {
         state->top_line = state->content.count > 0 ? (int)state->content.count - 1 : 0;
         state->left_char = 0;
         return FAT_SUCCESS;
     }
     
-    if (action == ACTION_OPEN_EXTERNAL) {
-        #ifdef USE_XDG_OPEN
-        // **SNAP-SPECIFIC CODE**
-        if (state->filepath && state->filepath[0] != '\0') {
+    if (action == ACTION_OPEN_EXTERNAL || action == ACTION_OPEN_EXTERNAL_DEFAULT) {
+        const char* command_to_run = NULL;
+        char command_buffer[512] = {0};
+
+        if(action == ACTION_OPEN_EXTERNAL_DEFAULT){
+            command_to_run = find_command_for_file(state);
+        }
+
+        if(!command_to_run){
+            ui_get_command_input(state, command_buffer, sizeof(command_buffer));
+            if(command_buffer[0] != '\0'){
+                command_to_run = command_buffer;
+            }
+        }
+
+        if (command_to_run) {
             def_prog_mode();
             endwin();
             
             char full_command[1024];
-            
-            #if defined(__linux__)
-                snprintf(full_command, sizeof(full_command), "xdg-open \"%s\"", state->filepath);
-            #elif defined(__APPLE__)
-                snprintf(full_command, sizeof(full_command), "open \"%s\"", state->filepath);
-            #elif defined(_WIN32)
-                snprintf(full_command, sizeof(full_command), "start \"\" \"%s\"", state->filepath);
-            #else
-                snprintf(full_command, sizeof(full_command), "xdg-open \"%s\"", state->filepath);
-            #endif
-            
+            snprintf(full_command, sizeof(full_command), "%s \"%s\"", command_to_run, state->filepath);
             (void)system(full_command);
             
             reset_prog_mode();
@@ -306,26 +332,6 @@ static FatResult process_input(AppState *state, int ch) {
                 state_reload_content(state, state->view_mode);
             }
         }
-        #else
-        // **NORMAL BUILD CODE**
-        char command_buffer[512];
-        ui_get_command_input(state, command_buffer, sizeof(command_buffer));
-        if (command_buffer[0] != '\0') {
-            def_prog_mode();
-            endwin();
-            
-            char full_command[1024];
-            snprintf(full_command, sizeof(full_command), "%s \"%s\"", command_buffer, state->filepath);
-            (void)system(full_command);
-            
-            reset_prog_mode();
-            refresh();
-
-            if (state->view_mode != VIEW_MODE_ARCHIVE) {
-                state_reload_content(state, state->view_mode);
-            }
-        }
-        #endif
         return FAT_SUCCESS;
     }
 
