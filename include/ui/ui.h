@@ -50,6 +50,19 @@ void ui_draw(const AppState *state);
 void ui_handle_resize(AppState *state);
 
 /**
+ * @brief Continuously checks terminal size, pausing execution until it's valid.
+ *
+ * If the terminal is too small, it displays a message and waits for the user
+ * to either resize the window or quit the application.
+ *
+ * @param state A read-only pointer to the current application state, used to
+ * get the minimum required dimensions from the configuration.
+ * @return `true` if the terminal size is valid, `false` if the user chose to quit.
+ */
+bool check_terminal_size(const AppState* state);
+
+
+/**
  * @brief Displays the help window with keybindings.
  *
  * This function creates a new window in the center of the screen, displays

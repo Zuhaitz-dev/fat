@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <limits.h>
+#include <stdio.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -66,4 +67,24 @@ int get_executable_dir(char* buffer, size_t size) {
     strncpy(buffer, path, size - 1);
     buffer[size - 1] = '\0';
     return 0;
+}
+
+/**
+ * @brief Cleans up a temporary file if its path indicates it was created by FAT.
+ */
+void cleanup_temp_file_if_exists(const char* path) {
+    if (!path) return;
+
+    char temp_file_prefix[PATH_MAX];
+#ifdef _WIN32
+    char temp_dir[MAX_PATH];
+    GetTempPathA(MAX_PATH, temp_dir);
+    snprintf(temp_file_prefix, sizeof(temp_file_prefix), "%s\\fat-", temp_dir);
+#else
+    snprintf(temp_file_prefix, sizeof(temp_file_prefix), "/tmp/fat-");
+#endif
+
+    if (strncmp(path, temp_file_prefix, strlen(temp_file_prefix)) == 0) {
+        remove(path);
+    }
 }

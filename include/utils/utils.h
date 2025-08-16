@@ -36,5 +36,16 @@ bool dir_exists(const char* path);
  */
 int get_executable_dir(char* buffer, size_t size);
 
+/**
+ * @brief Cleans up a temporary file if its path indicates it was created by FAT.
+ *
+ * This function checks if a given path matches the pattern of temporary files
+ * created by the application (e.g., `/tmp/fat-*`) and deletes it if so. This
+ * is used to clean up after viewing files from within archives.
+ *
+ * @param path The path to the file to potentially clean up.
+ */
+void cleanup_temp_file_if_exists(const char* path);
+
 
 #endif // UTILS_H

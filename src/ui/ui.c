@@ -198,6 +198,51 @@ void ui_handle_resize(AppState *state) {
     wnoutrefresh(stdscr);
 }
 
+/**
+ * @brief Continuously checks terminal size, pausing execution until it's valid.
+ */
+bool check_terminal_size(const AppState* state) {
+    int height, width;
+    getmaxyx(stdscr, height, width);
+
+    int min_width = state->config.min_term_width;
+    int min_height = state->config.min_term_height;
+
+    if (width >= min_width && height >= min_height) {
+        return true;
+    }
+
+    nodelay(stdscr, TRUE);
+    while (1) {
+        getmaxyx(stdscr, height, width);
+        if (width >= min_width && height >= min_height) {
+            nodelay(stdscr, FALSE);
+            clear();
+            refresh();
+            return true;
+        }
+
+        clear();
+        if (width >= 45) {
+            char msg1[100], msg2[100];
+            snprintf(msg1, sizeof(msg1), "Terminal is too small.");
+            snprintf(msg2, sizeof(msg2), "Current: %dx%d, Required: %dx%d", width, height, min_width, min_height);
+
+            mvprintw(height / 2 - 1, (width - strlen(msg1)) / 2, "%s", msg1);
+            mvprintw(height / 2, (width - strlen(msg2)) / 2, "%s", msg2);
+            mvprintw(height - 2, (width - strlen("Resize window or press 'q' to quit.")) / 2, "Resize window or press 'q' to quit.");
+        }
+        refresh();
+
+        int ch = getch();
+        if (ch == 'q' || ch == 'Q') {
+            nodelay(stdscr, FALSE);
+            return false;
+        }
+        napms(50);
+    }
+}
+
 
 /**
  * @brief Displays a message to the user in the status bar and waits for a key press.
