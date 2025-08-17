@@ -9,27 +9,25 @@ description: |
   extract them first. It is lightweight, fast, and highly extensible.
 
 grade: stable
-confinement: strict
+confinement: classic
 
 apps:
   fat:
-    command: usr/local/bin/fat
+    command: usr/local/bin/command-fat.sh
     plugs:
       - home
       - removable-media
       - desktop
-
-layout:
-  /usr/local/share/fat:
-    bind: $SNAP/usr/local/share/fat
 
 parts:
   fat:
     plugin: make
     source: .
     override-build: |
-      make release EXTRA_CFLAGS="-DUSE_XDG_OPEN"
+      make release
       make install DESTDIR=$CRAFT_PART_INSTALL
+      cp snap/local/command-fat.sh $CRAFT_PART_INSTALL/usr/local/bin/
+      chmod +x $CRAFT_PART_INSTALL/usr/local/bin/command-fat.sh
       craftctl default
     build-packages:
       - build-essential

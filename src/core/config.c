@@ -78,11 +78,26 @@ static void copy_file(const char* src, const char* dest) {
 }
 
 /**
+ * @brief Gets the base path for system resources, aware of Snap environment.
+ */
+static void get_system_resource_path(char* buffer, size_t size, const char* suffix) {
+    const char* snap_env = getenv("SNAP");
+    if (snap_env) {
+        // We are inside a Snap, use the $SNAP environment variable
+        snprintf(buffer, size, "%s/%s", snap_env, suffix);
+    } else {
+        // Not in a Snap, use the compile-time INSTALL_PREFIX
+        snprintf(buffer, size, "%s/%s", INSTALL_PREFIX, suffix);
+    }
+}
+
+
+/**
  * @brief Copies default configuration files from the system path to the user's config path.
  */
 static void copy_default_configs(const char* user_config_dir) {
     char system_defaults_dir[PATH_MAX];
-    snprintf(system_defaults_dir, sizeof(system_defaults_dir), "%s/share/fat/defaults", INSTALL_PREFIX);
+    get_system_resource_path(system_defaults_dir, sizeof(system_defaults_dir), "usr/local/share/fat/defaults");
 
     if (!dir_exists(system_defaults_dir)) {
         LOG_INFO("System defaults directory not found at '%s', cannot copy defaults.", system_defaults_dir);
@@ -103,7 +118,7 @@ static void copy_default_configs(const char* user_config_dir) {
  */
 static void copy_default_themes(const char* user_themes_dir) {
     char system_themes_dir[PATH_MAX];
-    snprintf(system_themes_dir, sizeof(system_themes_dir), "%s/share/fat/themes", INSTALL_PREFIX);
+    get_system_resource_path(system_themes_dir, sizeof(system_themes_dir), "usr/local/share/fat/themes");
 
     if (!dir_exists(system_themes_dir)) {
         LOG_INFO("System themes directory not found at '%s', cannot copy defaults.", system_themes_dir);
@@ -132,10 +147,10 @@ static void copy_default_themes(const char* user_themes_dir) {
  */
 static void copy_default_plugins(const char* user_plugins_dir) {
     char system_plugins_dir[PATH_MAX];
+    get_system_resource_path(system_plugins_dir, sizeof(system_plugins_dir), "usr/local/lib/fat/plugins");
+    
     const char* source_plugins_dir = NULL;
 
-    // First, check the official installation directory
-    snprintf(system_plugins_dir, sizeof(system_plugins_dir), "%s/lib/fat/plugins", INSTALL_PREFIX);
     if (dir_exists(system_plugins_dir)) {
         source_plugins_dir = system_plugins_dir;
     }
@@ -570,27 +585,10 @@ static void config_load_keybindings(AppState* state) {
     //    file will override settings from the previous one.
     char keybinding_path[PATH_MAX];
     
-    // Dev path (lowest priority), relative to the executable
-    char exe_dir[PATH_MAX];
-    if (get_executable_dir(exe_dir, sizeof(exe_dir)) == 0) {
-        char dev_defaults_dir[PATH_MAX];
-
-        // Check for the defaults dir in two common locations
-        snprintf(dev_defaults_dir, sizeof(dev_defaults_dir), "%s/../../defaults", exe_dir);
-        if (!dir_exists(dev_defaults_dir)) {
-            // If not found, try another common location (e.g., if running from root)
-            snprintf(dev_defaults_dir, sizeof(dev_defaults_dir), "%s/../defaults", exe_dir);
-        }
-
-        if (dir_exists(dev_defaults_dir)) {
-            snprintf(keybinding_path, sizeof(keybinding_path), "%s/keybindings.json", dev_defaults_dir);
-            LOG_INFO("Attempting to load dev keybindings from: %s", keybinding_path);
-            parse_keybindings_json(keybinding_path, &state->config);
-        }
-    }
-
-    // System path
-    snprintf(keybinding_path, sizeof(keybinding_path), "%s/share/fat/defaults/keybindings.json", INSTALL_PREFIX);
+    // System/Dev path (lowest priority)
+    char system_defaults_dir[PATH_MAX];
+    get_system_resource_path(system_defaults_dir, sizeof(system_defaults_dir), "usr/local/share/fat/defaults");
+    snprintf(keybinding_path, sizeof(keybinding_path), "%s/keybindings.json", system_defaults_dir);
     parse_keybindings_json(keybinding_path, &state->config);
 
     // User path (highest priority)
