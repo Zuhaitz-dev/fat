@@ -18,7 +18,7 @@
 ## Features
 
 - **Unified Viewer**: Inspect regular text files, binary files (in a hex-dump view), and archive contents all in one interface.
-- **Plugin Architecture**: FAT uses a dynamic plugin system to handle different archive formats. The beta version comes with support for ZIP and TAR archives.
+- **Plugin Architecture**: FAT uses a dynamic plugin system to handle different archive formats. The beta version comes with support for ZIP and TAR archives, as well as GZIP compressed files.
 - **Customizable Theming**: Easily change the look and feel of the application. FAT uses simple `.json` files for theming and comes with several pre-built themes, including Nord, Gruvbox, Monochrome, and Solarized.
 - **User-Friendly TUI**: A clean, two-pane layout shows file metadata on the left and content on the right.
 - **Cross-Platform**: Designed to compile and run on Linux, macOS, and ~~Windows (via MinGW-w64)~~.
@@ -94,13 +94,13 @@ First, you need to install the necessary development libraries.
 
 ```bash
 sudo apt update
-sudo apt install build-essential libncursesw5-dev libmagic-dev libzip-dev libtar-dev
+sudo apt install build-essential libncursesw5-dev libmagic-dev libzip-dev libtar-dev zlib1g-dev
 ```
 
 ### Linux (Fedora/RHEL/CentOS)
 
 ```bash
-sudo dnf install ncurses-devel file-devel libzip-devel libtar-devel
+sudo dnf install ncurses-devel file-devel libzip-devel libtar-devel zlib-devel
 ```
 
 ### macOS
@@ -108,7 +108,7 @@ sudo dnf install ncurses-devel file-devel libzip-devel libtar-devel
 Using [Homebrew](https://brew.sh/):
 
 ```bash
-brew install ncurses libmagic libzip libtar
+brew install ncurses libmagic libzip libtar zlib
 ```
 
 <details>

@@ -83,10 +83,10 @@ static void copy_file(const char* src, const char* dest) {
 static void get_system_resource_path(char* buffer, size_t size, const char* suffix) {
     const char* snap_env = getenv("SNAP");
     if (snap_env) {
-        // We are inside a Snap, use the $SNAP environment variable
-        snprintf(buffer, size, "%s/%s", snap_env, suffix);
+        // Inside a Snap, the structure is $SNAP/usr/local/...
+        snprintf(buffer, size, "%s/usr/local/%s", snap_env, suffix);
     } else {
-        // Not in a Snap, use the compile-time INSTALL_PREFIX
+        // For a local install, the path is based on the compile-time PREFIX
         snprintf(buffer, size, "%s/%s", INSTALL_PREFIX, suffix);
     }
 }
@@ -97,7 +97,7 @@ static void get_system_resource_path(char* buffer, size_t size, const char* suff
  */
 static void copy_default_configs(const char* user_config_dir) {
     char system_defaults_dir[PATH_MAX];
-    get_system_resource_path(system_defaults_dir, sizeof(system_defaults_dir), "usr/local/share/fat/defaults");
+    get_system_resource_path(system_defaults_dir, sizeof(system_defaults_dir), "share/fat/defaults");
 
     if (!dir_exists(system_defaults_dir)) {
         LOG_INFO("System defaults directory not found at '%s', cannot copy defaults.", system_defaults_dir);
@@ -118,7 +118,7 @@ static void copy_default_configs(const char* user_config_dir) {
  */
 static void copy_default_themes(const char* user_themes_dir) {
     char system_themes_dir[PATH_MAX];
-    get_system_resource_path(system_themes_dir, sizeof(system_themes_dir), "usr/local/share/fat/themes");
+    get_system_resource_path(system_themes_dir, sizeof(system_themes_dir), "share/fat/themes");
 
     if (!dir_exists(system_themes_dir)) {
         LOG_INFO("System themes directory not found at '%s', cannot copy defaults.", system_themes_dir);
@@ -147,8 +147,8 @@ static void copy_default_themes(const char* user_themes_dir) {
  */
 static void copy_default_plugins(const char* user_plugins_dir) {
     char system_plugins_dir[PATH_MAX];
-    get_system_resource_path(system_plugins_dir, sizeof(system_plugins_dir), "usr/local/lib/fat/plugins");
-    
+    get_system_resource_path(system_plugins_dir, sizeof(system_plugins_dir), "lib/fat/plugins");
+
     const char* source_plugins_dir = NULL;
 
     if (dir_exists(system_plugins_dir)) {
@@ -233,7 +233,7 @@ static void parse_csv_to_stringlist(const char* value, StringList* list) {
         while (isspace((unsigned char)*start)) start++;
         char* end = start + strlen(start) - 1;
         while (end > start && isspace((unsigned char)*end)) *end-- = '\0';
-        
+
         StringList_add(list, start);
         token = strtok(NULL, ",");
     }
@@ -532,7 +532,7 @@ static void parse_keybindings_json(const char* filepath, AppConfig* config) {
         if (action == ACTION_NONE) continue;
 
         Keybinding* kb = &config->keybindings[action];
-        
+
         // Free old data before overriding
         free(kb->name);
         free(kb->description);
@@ -541,7 +541,7 @@ static void parse_keybindings_json(const char* filepath, AppConfig* config) {
 
         kb->action = action;
         kb->name = strdup(name_json->valuestring);
-        
+
         cJSON* desc_json = cJSON_GetObjectItemCaseSensitive(action_obj, "description");
         if (cJSON_IsString(desc_json)) {
             kb->description = strdup(desc_json->valuestring);
@@ -580,14 +580,14 @@ static void config_load_keybindings(AppState* state) {
         StringList_init(&state->config.keybindings[i].keys);
         StringList_init(&state->config.keybindings[i].modes);
     }
-    
+
     // 2 - Parse default, system, and user keybinding files. Each subsequent
     //    file will override settings from the previous one.
     char keybinding_path[PATH_MAX];
-    
+
     // System/Dev path (lowest priority)
     char system_defaults_dir[PATH_MAX];
-    get_system_resource_path(system_defaults_dir, sizeof(system_defaults_dir), "usr/local/share/fat/defaults");
+    get_system_resource_path(system_defaults_dir, sizeof(system_defaults_dir), "share/fat/defaults");
     snprintf(keybinding_path, sizeof(keybinding_path), "%s/keybindings.json", system_defaults_dir);
     parse_keybindings_json(keybinding_path, &state->config);
 
@@ -597,7 +597,7 @@ static void config_load_keybindings(AppState* state) {
         snprintf(keybinding_path, sizeof(keybinding_path), "%s/keybindings.json", config_dir);
         parse_keybindings_json(keybinding_path, &state->config);
     }
-    
+
     // 3 - Populate the fast lookup map
     populate_key_map(&state->config);
 }

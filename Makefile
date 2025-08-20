@@ -106,7 +106,7 @@ APP_SOURCES := $(filter-out $(SHARED_LIB_SRC), $(SOURCES))
 # Automatically generate the object files for the main application
 OBJECTS := $(patsubst $(SRC_BASE_DIR)/%.c,$(OBJ_DIR)/%.o,$(APP_SOURCES))
 
-PLUGINS_SRC := tar zip
+PLUGINS_SRC := tar zip gz
 PLUGINS_SO := $(foreach plugin,$(PLUGINS_SRC),$(PLUGIN_DIR)/$(plugin)_plugin$(SHARED_LIB_EXT))
 
 SHARED_LIB := $(LIB_DIR)/libfat_utils$(SHARED_LIB_EXT)
@@ -157,6 +157,9 @@ $(PLUGIN_DIR)/tar_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/tar_plugin.c | $(SHARED
 
 $(PLUGIN_DIR)/zip_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/zip_plugin.c | $(SHARED_LIB)
 	$(CC) -shared $(CFLAGS) $< -o $@ -lzip -I/opt/homebrew/opt/libzip/include -L/opt/homebrew/opt/libzip/lib -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
+
+$(PLUGIN_DIR)/gz_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/gz_plugin.c | $(SHARED_LIB)
+	$(CC) -shared $(CFLAGS) $< -o $@ -lz -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
 
 clean:
 	@$(CLEAN_CMD) obj bin lib
