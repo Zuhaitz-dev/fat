@@ -143,11 +143,26 @@ jobs:
           tar -czvf ../fat-linux-arm64.tar.gz .
           cd ..
 
-      - name: Upload Linux arm64 artifact
+      - name: Download and prepare linuxdeploy for ARM64
+        run: |
+          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-aarch64.AppImage
+          chmod +x linuxdeploy-aarch64.AppImage
+          ./linuxdeploy-aarch64.AppImage --appimage-extract
+
+      - name: Patch Makefile for FUSE-less AppImage build (ARM64)
+        run: |
+          sed -i 's|./linuxdeploy-x86_64.AppImage|./squashfs-root/AppRun|g' Makefile
+
+      - name: Build AppImage for ARM64
+        run: make appimage CC=aarch64-linux-gnu-gcc
+
+      - name: Upload Linux arm64 artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-arm64-dist
-          path: fat-linux-arm64.tar.gz
+          path: |
+            fat-linux-arm64.tar.gz
+            fat-*.AppImage
 
       - name: Verify binary architecture (arm64)
         run: file package/bin/fat
@@ -182,41 +197,45 @@ jobs:
       - name: Build for macOS arm64
         run: |
           make clean
-          make release
+          make release USE_HOMEBREW=1
 
       - name: Create macOS distributable package
         run: |
-          # 1. Create the directory structure for our package
+          # 1. Get the dynamic Homebrew prefix
+          BREW_PREFIX=$(brew --prefix)
+          echo "Homebrew prefix is $BREW_PREFIX"
+
+          # 2. Create package structure
           mkdir -p dist/package/bin
           mkdir -p dist/package/lib/fat/plugins
           mkdir -p dist/package/share/fat/themes
           mkdir -p dist/package/share/fat/defaults
 
-          # 2. Copy the main executable, themes, and plugins
+          # 3. Copy files
           cp bin/fat-release dist/package/bin/fat
           cp themes/*.json dist/package/share/fat/themes/
           cp defaults/*.json dist/package/share/fat/defaults/
           cp plugins/*.dylib dist/package/lib/fat/plugins/
           cp lib/libfat_utils.dylib dist/package/lib/
-
-          # 3. Identify and copy required Homebrew libraries
-          LIBS=$(otool -L bin/fat-release | grep /usr/local | awk '{print $1}')
+          
+          # 4. Identify and copy required Homebrew libraries
+          LIBS=$(otool -L bin/fat-release | grep "$BREW_PREFIX" | awk '{print $1}')
           for lib in $LIBS; do
             cp "$lib" dist/package/lib/
           done
 
-          # 4. Fix library paths in the main executable
+          # 5. Fix library paths in the main executable
           for lib in $LIBS; do
             lib_name=$(basename "$lib")
             install_name_tool -change "$lib" "@executable_path/../lib/$lib_name" dist/package/bin/fat
           done
           install_name_tool -change "lib/libfat_utils.dylib" "@executable_path/../lib/libfat_utils.dylib" dist/package/bin/fat
 
-          # 5. Fix library paths within the bundled libraries themselves
+          # 6. Fix library paths within the bundled libraries themselves
           cd dist/package/lib
           for dylib in *.dylib; do
             install_name_tool -id "@rpath/$dylib" "$dylib"
-            DEPS=$(otool -L "$dylib" | grep /usr/local | awk '{print $1}')
+            DEPS=$(otool -L "$dylib" | grep "$BREW_PREFIX" | awk '{print $1}')
             for dep in $DEPS; do
               dep_name=$(basename "$dep")
               install_name_tool -change "$dep" "@rpath/$dep_name" "$dylib"
@@ -224,7 +243,7 @@ jobs:
           done
           cd ../../.. # Go back to the root directory
 
-          # 6. Create a ZIP archive of the package
+          # 7. Create a ZIP archive of the package
           cd dist/package
           zip -r ../fat-macos-arm64.zip .
           cd ../..
