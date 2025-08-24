@@ -96,33 +96,47 @@ jobs:
     needs: clean-dist
     runs-on: ubuntu-latest
     steps:
-      - name: Set up QEMU
+      - name: Set up QEMU for ARM emulation
         uses: docker/setup-qemu-action@v3
 
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build within ARM64 container
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: linux/arm64
-          outputs: "type=local,dest=out"
-      
-      - name: Extract ARM64 artifacts
+      - name: Install Linux dependencies (arm64)
         run: |
-          mkdir -p arm64-dist
-          tar -x -C arm64-dist -f out/image.tar
-          cp arm64-dist/fat-linux-arm64.tar.gz .
-          cp arm64-dist/fat-*.AppImage .
+          # Use a Docker container to create a clean ARM64 build environment
+          docker run --rm --privileged -v ${{ github.workspace }}:/workspace tonistiigi/binfmt:latest --install arm64
+          docker run --rm -v ${{ github.workspace }}:/src --platform linux/arm64 debian:11 /bin/bash -c " \
+            dpkg --add-architecture arm64 && \
+            apt-get update && \
+            apt-get install -y git wget file build-essential make tar gcc-aarch64-linux-gnu libmagic-dev:arm64 libncursesw5-dev:arm64 libzip-dev:arm64 libtar-dev:arm64 && \
+            cd /src && \
+            chmod +x ./update_version.sh && \
+            ./update_version.sh && \
+            make clean && \
+            CC=aarch64-linux-gnu-gcc make release \
+          "
 
+      - name: Create Linux arm64 distributable package
+        run: |
+          mkdir -p package-arm64/bin package-arm64/lib/fat/plugins package-arm64/share/fat/themes package-arm64/share/fat/defaults
+          cp bin/fat-release package-arm64/bin/fat
+          cp lib/libfat_utils.so package-arm64/lib/
+          cp plugins/*.so package-arm64/lib/fat/plugins/
+          cp themes/*.json package-arm64/share/fat/themes/
+          cp defaults/*.json package-arm64/share/fat/defaults/
+          cd package-arm64
+          tar -czvf ../fat-linux-arm64.tar.gz .
+          cd ..
+      
       - name: Upload Linux arm64 artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-arm64-dist
-          path: |
-            fat-linux-arm64.tar.gz
-            fat-*.AppImage
+          path: fat-linux-arm64.tar.gz
+
+      - name: Verify binary architecture (arm64)
+        run: file package-arm64/bin/fat
 
   build-macos:
     needs: clean-dist
@@ -154,7 +168,7 @@ jobs:
       - name: Build for macOS arm64
         run: |
           make clean
-          make release
+          make release USE_HOMEBREW=1
 
       - name: Create macOS distributable package
         run: |
@@ -173,7 +187,7 @@ jobs:
           
           # 3. Identify and copy required Homebrew libraries
           BREW_PREFIX=$(brew --prefix)
-          LIBS=$(otool -L bin/fat-release | grep "$BREW_PREFIX" | awk '{print $1}')
+          LIBS=$(otool -L bin/fat-release | grep "$BREW_PREFIX" | grep -v 'libfat_utils' | awk '{print $1}')
           for lib in $LIBS; do
             cp "$lib" dist/package/lib/
           done
