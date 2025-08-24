@@ -46,14 +46,6 @@ TARGET := $(BIN_DIR)/fat-$(BUILD_DIR_SUFFIX)
 # ==============================================================================
 # Platform-specific Settings
 # ==============================================================================
-ifeq ($(detected_OS),Linux)
-    SHARED_LIB_EXT := .so
-    LDFLAGS_NCURSES := -lncursesw
-    LDFLAGS_PLATFORM := -ldl
-    CLEAN_CMD := rm -rf
-    TARGET_EXT :=
-    STRIP_FLAG := -s
-endif
 ifeq ($(detected_OS),Darwin) # macOS
     SHARED_LIB_EXT := .dylib
     LDFLAGS_NCURSES := -lncurses
@@ -61,14 +53,20 @@ ifeq ($(detected_OS),Darwin) # macOS
     CLEAN_CMD := rm -rf
     TARGET_EXT :=
     STRIP_FLAG :=
-endif
-ifeq ($(detected_OS),Windows)
+else ifeq ($(detected_OS),Windows)
     SHARED_LIB_EXT := .dll
     MINGW_PREFIX ?= /mingw64
     LDFLAGS_NCURSES := -L$(MINGW_PREFIX)/lib -lpdcurses
     LDFLAGS_PLATFORM :=
     CLEAN_CMD := cmd /c rmdir /s /q
     TARGET_EXT := .exe
+    STRIP_FLAG := -s
+else
+    SHARED_LIB_EXT := .so
+    LDFLAGS_NCURSES := -lncursesw
+    LDFLAGS_PLATFORM := -ldl
+    CLEAN_CMD := rm -rf
+    TARGET_EXT :=
     STRIP_FLAG := -s
 endif
 
