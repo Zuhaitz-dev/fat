@@ -54,6 +54,10 @@ ifeq ($(detected_OS),Darwin) # macOS
     CLEAN_CMD := rm -rf
     TARGET_EXT :=
     STRIP_FLAG :=
+    SHARED_LIB_INSTALL_NAME := -Wl,-install_name,$(PREFIX)/$(LIB_DIR)/libfat_utils$(SHARED_LIB_EXT)
+    GZ_INSTALL_NAME := -Wl,-install_name,$(PREFIX)/$(LIB_DIR)/fat/$(PLUGIN_DIR)/gz_plugin$(SHARED_LIB_EXT)
+    TAR_INSTALL_NAME := -Wl,-install_name,$(PREFIX)/$(LIB_DIR)/fat/$(PLUGIN_DIR)/tar_plugin$(SHARED_LIB_EXT)
+    ZIP_INSTALL_NAME := -Wl,-install_name,$(PREFIX)/$(LIB_DIR)/fat/$(PLUGIN_DIR)/zip_plugin$(SHARED_LIB_EXT)
 else ifeq ($(detected_OS),Windows)
     SHARED_LIB_EXT := .dll
     MINGW_PREFIX ?= /mingw64
@@ -62,6 +66,10 @@ else ifeq ($(detected_OS),Windows)
     CLEAN_CMD := cmd /c rmdir /s /q
     TARGET_EXT := .exe
     STRIP_FLAG := -s
+    SHARED_LIB_INSTALL_NAME :=
+    GZ_INSTALL_NAME :=
+    TAR_INSTALL_NAME :=
+    ZIP_INSTALL_NAME :=
 else
     SHARED_LIB_EXT := .so
     LDFLAGS_NCURSES := -lncursesw
@@ -69,6 +77,10 @@ else
     CLEAN_CMD := rm -rf
     TARGET_EXT :=
     STRIP_FLAG := -s
+    SHARED_LIB_INSTALL_NAME :=
+    GZ_INSTALL_NAME :=
+    TAR_INSTALL_NAME :=
+    ZIP_INSTALL_NAME :=
 endif
 
 # ==============================================================================
@@ -156,7 +168,7 @@ plugins: $(PLUGINS_SO)
 
 $(SHARED_LIB): $(SHARED_LIB_OBJ)
 	@mkdir -p $(LIB_DIR)
-	$(CC) -shared $(SHARED_LIB_OBJ) -o $(SHARED_LIB)
+	$(CC) -shared $(SHARED_LIB_OBJ) -o $(SHARED_LIB) $(SHARED_LIB_INSTALL_NAME)
 
 $(TARGET)$(TARGET_EXT): $(OBJECTS) $(SHARED_LIB)
 	@mkdir -p $(BIN_DIR)
@@ -168,13 +180,13 @@ $(OBJ_DIR)/%.o: $(SRC_BASE_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(PLUGIN_DIR)/tar_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/tar_plugin.c | $(SHARED_LIB)
-	$(CC) -shared $(CFLAGS) $< -o $@ -ltar $(HOMEBREW_TAR_LFLAG) -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
+	$(CC) -shared $(CFLAGS) $< -o $@ -ltar $(HOMEBREW_TAR_LFLAG) -L$(LIB_DIR) -lfat_utils $(TAR_INSTALL_NAME) -Wl,-rpath,'$$ORIGIN/../../lib'
 
 $(PLUGIN_DIR)/zip_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/zip_plugin.c | $(SHARED_LIB)
-	$(CC) -shared $(CFLAGS) $< -o $@ -lzip $(HOMEBREW_ZIP_INC) $(HOMEBREW_ZIP_LFLAG) -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
+	$(CC) -shared $(CFLAGS) $< -o $@ -lzip $(HOMEBREW_ZIP_INC) $(HOMEBREW_ZIP_LFLAG) -L$(LIB_DIR) -lfat_utils $(ZIP_INSTALL_NAME) -Wl,-rpath,'$$ORIGIN/../../lib'
 
 $(PLUGIN_DIR)/gz_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/gz_plugin.c | $(SHARED_LIB)
-	$(CC) -shared $(CFLAGS) $< -o $@ -lz -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
+	$(CC) -shared $(CFLAGS) $< -o $@ -lz -L$(LIB_DIR) -lfat_utils $(SHARED_LIB_INSTALL_NAME) $(GZ_INSTALL_NAME) -Wl,-rpath,'$$ORIGIN/../../lib'
 
 clean:
 	@$(CLEAN_CMD) obj bin lib
