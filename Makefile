@@ -4,6 +4,7 @@
 DEBUG ?= 0
 VERSION := "$(shell cat .version/VERSION_FILE) - ($(shell cat .version/CODENAME_FILE))"
 PREFIX ?= /usr/local
+USE_HOMEBREW ?= 1
 
 # ==============================================================================
 # OS Detection
@@ -73,7 +74,23 @@ endif
 # ==============================================================================
 # Compiler and Linker Flags
 # ==============================================================================
-COMMON_CFLAGS := -Wall -Wextra -Iinclude -fPIC -I/opt/homebrew/opt/libmagic/include -I/opt/homebrew/opt/libtar/include -I/opt/homebrew/opt/libzip/include -DFAT_VERSION=\"$(VERSION)\" -DINSTALL_PREFIX=\"$(PREFIX)\"
+ifeq ($(USE_HOMEBREW), 1)
+    HOMEBREW_MAGIC_INC := -I/opt/homebrew/opt/libmagic/include
+    HOMEBREW_TAR_INC := -I/opt/homebrew/opt/libtar/include
+    HOMEBREW_ZIP_INC := -I/opt/homebrew/opt/libzip/include
+    HOMEBREW_MAGIC_LFLAG := -L/opt/homebrew/opt/libmagic/lib
+    HOMEBREW_TAR_LFLAG := -L/opt/homebrew/opt/libtar/lib
+    HOMEBREW_ZIP_LFLAG := -L/opt/homebrew/opt/libzip/lib
+else
+    HOMEBREW_MAGIC_INC :=
+    HOMEBREW_TAR_INC :=
+    HOMEBREW_ZIP_INC :=
+    HOMEBREW_MAGIC_LFLAG :=
+    HOMEBREW_TAR_LFLAG :=
+    HOMEBREW_ZIP_LFLAG :=
+endif
+
+COMMON_CFLAGS := -Wall -Wextra -Iinclude -fPIC $(HOMEBREW_MAGIC_INC) $(HOMEBREW_TAR_INC) $(HOMEBREW_ZIP_INC) -DFAT_VERSION=\"$(VERSION)\" -DINSTALL_PREFIX=\"$(PREFIX)\"
 
 ifeq ($(DEBUG), 1)
 	CFLAGS := $(COMMON_CFLAGS) -g3 -O0 $(EXTRA_CFLAGS)
@@ -82,7 +99,7 @@ else
 	CFLAGS := $(COMMON_CFLAGS) -O2 $(STRIP_FLAG) $(EXTRA_CFLAGS)
 endif
 
-LDFLAGS := $(LDFLAGS_NCURSES) -lmagic -L/opt/homebrew/opt/libmagic/lib $(LDFLAGS_PLATFORM) -L$(LIB_DIR) -lfat_utils -lm -lzip -L/opt/homebrew/opt/libzip/lib
+LDFLAGS := $(LDFLAGS_NCURSES) -lmagic $(HOMEBREW_MAGIC_LFLAG) $(LDFLAGS_PLATFORM) -L$(LIB_DIR) -lfat_utils -lm -lzip $(HOMEBREW_ZIP_LFLAG)
 ifeq ($(detected_OS),Windows)
     LDFLAGS += -lgnurx
 endif
@@ -151,10 +168,10 @@ $(OBJ_DIR)/%.o: $(SRC_BASE_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(PLUGIN_DIR)/tar_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/tar_plugin.c | $(SHARED_LIB)
-	$(CC) -shared $(CFLAGS) $< -o $@ -ltar -L/opt/homebrew/opt/libtar/lib -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
+	$(CC) -shared $(CFLAGS) $< -o $@ -ltar $(HOMEBREW_TAR_LFLAG) -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
 
 $(PLUGIN_DIR)/zip_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/zip_plugin.c | $(SHARED_LIB)
-	$(CC) -shared $(CFLAGS) $< -o $@ -lzip -I/opt/homebrew/opt/libzip/include -L/opt/homebrew/opt/libzip/lib -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
+	$(CC) -shared $(CFLAGS) $< -o $@ -lzip $(HOMEBREW_ZIP_INC) $(HOMEBREW_ZIP_LFLAG) -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
 
 $(PLUGIN_DIR)/gz_plugin$(SHARED_LIB_EXT): $(PLUGIN_DIR)/gz_plugin.c | $(SHARED_LIB)
 	$(CC) -shared $(CFLAGS) $< -o $@ -lz -L$(LIB_DIR) -lfat_utils -Wl,-rpath,'$$ORIGIN/../../lib'
