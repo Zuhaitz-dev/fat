@@ -71,6 +71,18 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    setlocale(LC_ALL, "");
+
+    ui_init();
+    
+    AppState state = {0};
+    state.force_view_mode = force_mode; // Pass the forced mode to the state
+    
+    // Load configuration to get terminal size requirements before checking
+    config_load(&state);
+
+    // Now that config_load has been called, the config directory is guaranteed to exist.
+    // We can now safely initialize the logger.
     char config_dir[PATH_MAX];
     char log_path[PATH_MAX];
     if (get_config_dir(config_dir, sizeof(config_dir)) == 0) {
@@ -81,15 +93,6 @@ int main(int argc, char *argv[]) {
 
     logger_init(log_path);
     LOG_INFO("Application starting.");
-    setlocale(LC_ALL, "");
-
-    ui_init();
-    
-    AppState state = {0};
-    state.force_view_mode = force_mode; // Pass the forced mode to the state
-    
-    // Load configuration to get terminal size requirements before checking
-    config_load(&state);
 
 
     if (!check_terminal_size(&state)) {
