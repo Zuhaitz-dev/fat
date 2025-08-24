@@ -207,4 +207,4 @@ For a complete example, see the implementations for `zip_plugin.c` and `tar_plug
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
+This project is licensed under the GPLv3 License. See the [LICENSE](./LICENSE) file for details. v0.2.0-beta (Onion) and earlier versions are under MIT license.
